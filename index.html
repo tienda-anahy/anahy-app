@@ -291,10 +291,10 @@
   <!-- GASTOS -->
   <section class="tab-panel" id="tab-gastos">
     <div class="card">
-      <h2>Gastos fijos <span class="badge">editable</span></h2>
+      <h2>Gastos fijos <span class="badge">independiente cada mes</span></h2>
       <div id="listaFijos"></div>
       <button class="btn secundario" style="margin-top:10px;" onclick="abrirFormFijo()">+ Añadir gasto fijo</button>
-      <div class="total-linea"><span>Total fijos (equiv. mensual)</span><span id="totalFijos">0€</span></div>
+      <div class="total-linea"><span>Total fijos pagados este mes</span><span id="totalFijos">0€</span></div>
     </div>
     <div class="card">
       <h2>Gastos imprevistos / variables</h2>
@@ -308,6 +308,11 @@
       <div id="graficoCategorias"></div>
       <div class="empty" id="emptyCategorias" style="display:none;">Sin gastos imprevistos este mes todavía.</div>
     </div>
+    <div class="card">
+      <h2>Proveedores</h2>
+      <div id="listaProveedores"></div>
+      <button class="btn secundario" style="margin-top:10px;" onclick="abrirFormProveedor()">+ Añadir proveedor</button>
+    </div>
   </section>
 
   <!-- INGRESOS -->
@@ -318,6 +323,11 @@
       <div class="empty" id="emptyIngresos" style="display:none;">Aún no has apuntado ingresos este mes.</div>
       <div class="total-linea"><span>Total ingresos</span><span id="totalIngresosTab">0€</span></div>
       <button class="btn" style="margin-top:14px;" onclick="abrirFormIngreso()">+ Añadir ingreso del día</button>
+    </div>
+    <div class="card">
+      <h2>Resumen de un día</h2>
+      <input type="date" id="diaResumenFecha" onchange="renderResumenDia()" style="width:100%; padding:10px; border:1px solid var(--borde); border-radius:9px; font-family:'Segoe UI',sans-serif; background:var(--crema); color:var(--tinta); margin-bottom:10px;">
+      <div id="resumenDiaContenido"></div>
     </div>
   </section>
 
@@ -351,19 +361,20 @@
     </div>
   </section>
 
-  <!-- STOCK -->
+  <!-- CADUCIDAD -->
   <section class="tab-panel" id="tab-stock">
     <div class="card">
-      <h2>Stock crítico <span class="badge">solo lo importante</span></h2>
-      <div id="listaStock"></div>
-      <div class="empty" id="emptyStock" style="display:none;">Aún no hay productos en el stock.</div>
-      <button class="btn" style="margin-top:14px;" onclick="abrirFormStock()">+ Añadir producto</button>
-    </div>
-    <div class="card">
       <h2>Caducidades</h2>
+      <input type="text" id="buscarCaducidad" placeholder="🔎 Buscar producto..." oninput="renderStock()"
+        style="width:100%; padding:10px; border:1px solid var(--borde); border-radius:9px; font-family:'Segoe UI',sans-serif; font-size:0.9rem; background:var(--crema); color:var(--tinta); margin-bottom:10px;">
       <div id="listaCaducidades"></div>
       <div class="empty" id="emptyCaducidades" style="display:none;">Aún no hay productos con caducidad apuntados.</div>
-      <button class="btn" style="margin-top:14px;" onclick="abrirFormCaducidad()">+ Añadir producto con caducidad</button>
+      <button class="btn" style="margin-top:14px;" onclick="abrirFormCaducidad()">+ Añadir producto</button>
+    </div>
+    <div class="card">
+      <h2>Familias de producto</h2>
+      <div id="listaFamilias"></div>
+      <button class="btn secundario" style="margin-top:10px;" onclick="abrirFormFamilia()">+ Añadir familia</button>
     </div>
   </section>
 
@@ -375,7 +386,7 @@
   <button onclick="cambiarTab('gastos')" data-tab="gastos"><span class="ic">💶</span>Gastos</button>
   <button onclick="cambiarTab('fiados')" data-tab="fiados"><span class="ic">📒</span>Fiados</button>
   <button onclick="cambiarTab('prestamo')" data-tab="prestamo"><span class="ic">🤝</span>Préstamo</button>
-  <button onclick="cambiarTab('stock')" data-tab="stock"><span class="ic">📦</span>Stock</button>
+  <button onclick="cambiarTab('stock')" data-tab="stock"><span class="ic">📦</span>Caducidad</button>
 </nav>
 
 <!-- FORM OVERLAYS -->
@@ -398,6 +409,17 @@
   </div>
 </div>
 
+<div class="form-overlay" id="overlayProveedor">
+  <div class="form-sheet">
+    <h3>Nuevo proveedor</h3>
+    <label>Nombre</label><input type="text" id="pvNombre" placeholder="Ej. Mercabarna">
+    <div class="form-btns">
+      <button class="btn secundario" onclick="cerrarOverlay('overlayProveedor')">Cancelar</button>
+      <button class="btn" onclick="guardarProveedor()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <div class="form-overlay" id="overlayGasto">
   <div class="form-sheet">
     <h3>Nuevo gasto imprevisto</h3>
@@ -417,6 +439,10 @@
     <select id="gMetodo">
       <option value="efectivo">Efectivo</option>
       <option value="tarjeta">Tarjeta</option>
+    </select>
+    <label>Proveedor (opcional)</label>
+    <select id="gProveedor">
+      <option value="">Sin especificar</option>
     </select>
     <div class="form-btns">
       <button class="btn secundario" onclick="cerrarOverlay('overlayGasto')">Cancelar</button>
@@ -521,10 +547,15 @@
 
 <div class="form-overlay" id="overlayCaducidad">
   <div class="form-sheet">
-    <h3>Producto con caducidad</h3>
+    <h3 id="cdTitulo">Producto con caducidad</h3>
     <label>Nombre</label><input type="text" id="cdNombre" placeholder="Ej. Leche Pascual">
-    <label>Fecha de caducidad</label><input type="date" id="cdFecha">
-    <label>Nota (opcional)</label><input type="text" id="cdNota" placeholder="Ej. lote de la nevera 2">
+    <label>Familia (opcional)</label>
+    <select id="cdFamilia"><option value="">Sin familia</option></select>
+    <label>Ubicación en la tienda (opcional)</label><input type="text" id="cdUbicacion" placeholder="Ej. nevera 2, estantería fondo">
+    <label>Fechas de caducidad</label>
+    <div id="cdFechasLista"></div>
+    <button class="btn secundario" style="margin-top:6px;" onclick="agregarCampoFecha()">+ Añadir otra fecha</button>
+    <label style="margin-top:10px;">Nota (opcional)</label><input type="text" id="cdNota" placeholder="Ej. lote de la nevera 2">
     <div class="form-btns">
       <button class="btn secundario" onclick="cerrarOverlay('overlayCaducidad')">Cancelar</button>
       <button class="btn" onclick="guardarCaducidad()">Guardar</button>
@@ -532,16 +563,13 @@
   </div>
 </div>
 
-<div class="form-overlay" id="overlayStock">
+<div class="form-overlay" id="overlayFamilia">
   <div class="form-sheet">
-    <h3>Producto de stock</h3>
-    <label>Nombre</label><input type="text" id="sNombre" placeholder="Ej. Harina de mandioca">
-    <label>Cantidad actual</label><input type="number" step="0.1" id="sCantidad" placeholder="0">
-    <label>Unidad</label><input type="text" id="sUnidad" placeholder="Ej. paquetes, kg, cajas">
-    <label>Aviso cuando baje de</label><input type="number" step="0.1" id="sMinimo" placeholder="0">
+    <h3>Nueva familia</h3>
+    <label>Nombre</label><input type="text" id="fmNombre" placeholder="Ej. Lácteos">
     <div class="form-btns">
-      <button class="btn secundario" onclick="cerrarOverlay('overlayStock')">Cancelar</button>
-      <button class="btn" onclick="guardarStock()">Guardar</button>
+      <button class="btn secundario" onclick="cerrarOverlay('overlayFamilia')">Cancelar</button>
+      <button class="btn" onclick="guardarFamilia()">Guardar</button>
     </div>
   </div>
 </div>
@@ -647,8 +675,17 @@ function defaultState(){
     prestamoPersonal: { montoInicial:500, saldo:270, cuotaDiaria:30, pagos:[] },
     stock: [],
     caducidades: [],
+    familiasCaducidad: ['Lácteos','Productos en bolsa','Bollería','Enlatados','Bebidas'],
+    registrosFijosMensuales: {},
+    proveedores: ['América','Elías','Dulce sol','Trigo verde','Komkal','Punto cash','Cosmo caix','Pedregosa','Ous aleña','Pacific group','Monbaque','Pepsico','Burriak','Carlos bolsa','Agua Ribes','Asían','Blaysa','Chino','Chocolate Sole','Copral','Daniel alimentación','Dispromon','Distribuidora latinoandina','DK distribución','Oscar honduras','Euro cash','Fageda','Grefusa','Froneri nestle Helados','Grupo América Fox','Grupo mundial','Helado latino','Hielo','Impex latino','Importadora mayzo','Mercabarna','Pan Bimbo','Transporte'],
     usuarios: {}
   };
+}
+
+function formatearFecha(iso){
+  if(!iso) return '';
+  const [y,m,d] = iso.split('-');
+  return d+'/'+m+'/'+y;
 }
 
 function cid(){ return 'id' + Math.random().toString(36).slice(2,10); }
@@ -861,7 +898,26 @@ function equivalenteMensual(g){
   if(g.freq==='trimestral') return g.monto/3;
   return g.monto;
 }
-function totalFijosMensual(){ return state.gastosFijos.reduce((s,g)=>s+equivalenteMensual(g),0); }
+function obtenerRegistroFijo(mesKey, fijo){
+  const porMes = state.registrosFijosMensuales[mesKey];
+  if(porMes && porMes[fijo.id]) return porMes[fijo.id];
+  return { monto: fijo.monto, pagado: true }; // por defecto asumimos "como siempre", editable
+}
+function setRegistroFijo(mesKey, fijoId, campo, valor){
+  if(!state.registrosFijosMensuales[mesKey]) state.registrosFijosMensuales[mesKey] = {};
+  const fijo = state.gastosFijos.find(x=>x.id===fijoId);
+  const actual = state.registrosFijosMensuales[mesKey][fijoId] || { monto: fijo.monto, pagado: true };
+  actual[campo] = valor;
+  state.registrosFijosMensuales[mesKey][fijoId] = actual;
+  guardarEnNube();
+}
+function totalFijosMensual(mesKey){
+  mesKey = mesKey || selectedMonth;
+  return state.gastosFijos.reduce((s,g)=>{
+    const r = obtenerRegistroFijo(mesKey, g);
+    return s + (r.pagado ? Number(r.monto) : 0);
+  }, 0);
+}
 function filtrarPorMes(lista, campoFecha){ return lista.filter(x => (x[campoFecha]||'').slice(0,7) === selectedMonth); }
 function totalVariablesMes(){ return filtrarPorMes(state.gastosVariables,'fecha').reduce((s,g)=>s+Number(g.monto),0); }
 function totalIngresosMes(){ return filtrarPorMes(state.ingresos,'fecha').reduce((s,g)=>s+Number(g.monto),0); }
@@ -907,22 +963,21 @@ function renderResumen(){
   document.getElementById('kpiBalance').textContent = euros(balance);
   document.getElementById('kpiFiados').textContent = euros(totalFiadosPendiente());
 
-  const stockBajo = state.stock.filter(s => Number(s.cantidad) <= Number(s.minimo||0));
+  const hoyCad0 = new Date(); hoyCad0.setHours(0,0,0,0);
+  const cadUrgentes = (state.caducidades||[]).filter(c => (c.fechas||[]).some(f => Math.round((new Date(f+'T00:00:00')-hoyCad0)/(1000*60*60*24)) <= 3));
   const stockBox = document.getElementById('kpiStockBox');
-  stockBox.className = 'kpi ' + (stockBajo.length>0 ? 'neg':'pos');
-  document.getElementById('kpiStockBajo').textContent = stockBajo.length;
+  stockBox.className = 'kpi ' + (cadUrgentes.length>0 ? 'neg':'pos');
+  document.getElementById('kpiStockBajo').textContent = cadUrgentes.length;
+  document.querySelector('#kpiStockBox .label').textContent = 'Caducando pronto';
 
   // avisos
   const avisos = [];
   if(ingresos===0) avisos.push({texto:'📝 Aún no has apuntado ingresos este mes.', tab:'ingresos'});
-  if(stockBajo.length>0) avisos.push({texto:'📦 '+stockBajo.length+' producto(s) con stock bajo: '+stockBajo.map(s=>s.nombre).join(', '), tab:'stock'});
+  if(cadUrgentes.length>0) avisos.push({texto:'⏰ '+cadUrgentes.length+' producto(s) caducando pronto: '+cadUrgentes.map(c=>c.nombre).join(', '), tab:'stock'});
   const fiadoAlto = state.fiados.filter(f=>f.monto>1000);
   fiadoAlto.forEach(f=> avisos.push({texto:'🔴 '+f.cliente+' debe más de 1.000€ ('+euros(f.monto)+').', tab:'fiados'}));
-  const hoyCad = new Date(); hoyCad.setHours(0,0,0,0);
-  (state.caducidades||[]).forEach(c=>{
-    const dias = Math.round((new Date(c.fecha+'T00:00:00')-hoyCad)/(1000*60*60*24));
-    if(dias<=3) avisos.push({texto:(dias<0?'⏰ '+c.nombre+' caducó hace '+Math.abs(dias)+' día(s).':'⏰ '+c.nombre+' caduca '+(dias===0?'hoy':'en '+dias+' día(s)')+'.'), tab:'stock'});
-  });
+  const pendientesPago = state.gastosFijos.filter(g => !obtenerRegistroFijo(selectedMonth, g).pagado);
+  if(pendientesPago.length>0) avisos.push({texto:'💶 '+pendientesPago.length+' gasto(s) fijo(s) sin marcar como pagado este mes: '+pendientesPago.map(g=>g.nombre).join(', '), tab:'gastos'});
   const cardAvisos = document.getElementById('cardAvisos');
   if(avisos.length){
     cardAvisos.style.display='block';
@@ -931,19 +986,13 @@ function renderResumen(){
     cardAvisos.style.display='none';
   }
 
-  // proximos pagos (dentro de 7 dias)
-  const hoy = new Date();
-  const diaHoy = hoy.getDate();
-  const proximos = state.gastosFijos.filter(g=>g.diaVenc).map(g=>{
-    let dif = g.diaVenc - diaHoy;
-    if(dif < 0) dif += 30;
-    return {...g, dif};
-  }).sort((a,b)=>a.dif-b.dif).filter(g=>g.dif<=7);
+  // proximos pagos: gastos fijos no marcados como pagados este mes
   const contProx = document.getElementById('proximosPagos');
-  document.getElementById('emptyProximos').style.display = proximos.length? 'none':'block';
-  contProx.innerHTML = proximos.map(g=>`
-    <div class="fila"><div class="nombre">${g.nombre}<small>${g.dif===0?'Hoy':'En '+g.dif+' día(s)'} · día ${g.diaVenc}</small></div><div class="monto">${euros(equivalenteMensual(g))}</div></div>
-  `).join('');
+  document.getElementById('emptyProximos').style.display = pendientesPago.length? 'none':'block';
+  contProx.innerHTML = pendientesPago.map(g=>{
+    const r = obtenerRegistroFijo(selectedMonth, g);
+    return `<div class="fila"><div class="nombre">${g.nombre}${g.diaVenc?'<small>día '+g.diaVenc+'</small>':''}</div><div class="monto">${euros(r.monto)}</div></div>`;
+  }).join('');
 
   const cont = document.getElementById('graficoMeses');
   cont.innerHTML = '';
@@ -954,7 +1003,7 @@ function renderResumen(){
     const d = new Date(base.getFullYear(), base.getMonth()-i, 1);
     const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
     const ing = state.ingresos.filter(x=>(x.fecha||'').slice(0,7)===key).reduce((s,x)=>s+Number(x.monto),0);
-    const gas = totalFijosMensual() + state.gastosVariables.filter(x=>(x.fecha||'').slice(0,7)===key).reduce((s,x)=>s+Number(x.monto),0);
+    const gas = totalFijosMensual(key) + state.gastosVariables.filter(x=>(x.fecha||'').slice(0,7)===key).reduce((s,x)=>s+Number(x.monto),0);
     meses.push({key, label: MESES[d.getMonth()].slice(0,3), ing, gas});
     maxVal = Math.max(maxVal, ing, gas);
   }
@@ -972,25 +1021,30 @@ function renderResumen(){
   });
 
   const rf = document.getElementById('resumenFijos');
-  rf.innerHTML = state.gastosFijos.slice(0,5).map(g=>`
-    <div class="fila"><div class="nombre">${g.nombre}</div><div class="monto">${euros(equivalenteMensual(g))}/mes</div></div>
-  `).join('') + `<div class="fila"><div class="nombre"><em>+ ${state.gastosFijos.length-5} más en la pestaña Gastos</em></div></div>`;
+  rf.innerHTML = state.gastosFijos.slice(0,5).map(g=>{
+    const r = obtenerRegistroFijo(selectedMonth, g);
+    return `<div class="fila"><div class="nombre">${g.nombre}${!r.pagado?' <small style="color:var(--rojo);">(sin pagar)</small>':''}</div><div class="monto">${euros(r.monto)}</div></div>`;
+  }).join('') + (state.gastosFijos.length>5 ? `<div class="fila"><div class="nombre"><em>+ ${state.gastosFijos.length-5} más en la pestaña Gastos</em></div></div>` : '');
 }
 
 function renderGastos(){
   const lf = document.getElementById('listaFijos');
-  lf.innerHTML = state.gastosFijos.map(g=>`
-    <div class="fila">
-      <div class="nombre">${g.nombre}<small>${g.freq}${g.freq!=='mensual' ? ' · ' + euros(equivalenteMensual(g)) + '/mes equiv.' : ''}${g.diaVenc? ' · vence día '+g.diaVenc:''}${g.metodo && g.metodo!=='domiciliado' ? ' · '+(g.metodo==='efectivo'?'Efectivo':'Tarjeta') : ''}</small></div>
+  lf.innerHTML = state.gastosFijos.map(g=>{
+    const r = obtenerRegistroFijo(selectedMonth, g);
+    return `<div class="fila">
+      <div class="nombre">${g.nombre}<small>${g.freq}${g.diaVenc? ' · día '+g.diaVenc:''}${g.metodo && g.metodo!=='domiciliado' ? ' · '+(g.metodo==='efectivo'?'Efectivo':'Tarjeta') : ''}</small></div>
       <div class="monto">
-        <input type="number" step="0.01" value="${g.monto}" style="width:76px;padding:5px;border:1px solid var(--borde);border-radius:6px;font-family:'Segoe UI',sans-serif;background:var(--crema);color:var(--tinta);" onchange="editarFijo('${g.id}', this.value)">
+        <input type="number" step="0.01" value="${r.monto}" style="width:70px;padding:5px;border:1px solid var(--borde);border-radius:6px;font-family:'Segoe UI',sans-serif;background:var(--crema);color:var(--tinta);" onchange="setRegistroFijo(selectedMonth,'${g.id}','monto', Number(this.value)||0); render();">
       </div>
+      <label style="display:flex; align-items:center; gap:4px; font-size:0.7rem; font-family:'Segoe UI',sans-serif;">
+        <input type="checkbox" ${r.pagado?'checked':''} style="width:auto;" onchange="setRegistroFijo(selectedMonth,'${g.id}','pagado', this.checked); render();"> pagado
+      </label>
       <div class="acciones">
         <button class="icon-btn" onclick="abrirVencFijo('${g.id}')">📅</button>
         <button class="icon-btn" onclick="borrarFijo('${g.id}')">🗑️</button>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
   document.getElementById('totalFijos').textContent = euros(totalFijosMensual());
 
   const vars = filtrarPorMes(state.gastosVariables,'fecha').sort((a,b)=> b.fecha.localeCompare(a.fecha));
@@ -998,7 +1052,7 @@ function renderGastos(){
   document.getElementById('emptyVariables').style.display = vars.length? 'none':'block';
   lv.innerHTML = vars.map(g=>`
     <div class="fila">
-      <div class="nombre">${g.concepto}<small>${g.fecha} · ${g.categoria}${g.metodo? ' · '+(g.metodo==='efectivo'?'Efectivo':'Tarjeta'):''}${g.usuario? ' · '+g.usuario:''}</small></div>
+      <div class="nombre">${g.concepto}<small>${formatearFecha(g.fecha)} · ${g.categoria}${g.metodo? ' · '+(g.metodo==='efectivo'?'Efectivo':'Tarjeta'):''}${g.proveedor? ' · '+g.proveedor:''}${g.usuario? ' · '+g.usuario:''}</small></div>
       <div class="monto rojo">${euros(g.monto)}</div>
       <div class="acciones"><button class="icon-btn" onclick="borrarVariable('${g.id}')">🗑️</button></div>
     </div>
@@ -1020,6 +1074,30 @@ function renderGastos(){
       </div>
     </div>
   `).join('');
+
+  renderProveedoresLista();
+}
+
+function renderProveedoresLista(){
+  const cont = document.getElementById('listaProveedores');
+  if(!cont) return;
+  cont.innerHTML = state.proveedores.map(p=>`
+    <div class="fila"><div class="nombre">${p}</div><div class="acciones"><button class="icon-btn" onclick="borrarProveedor('${p.replace(/'/g,"\\'")}')">🗑️</button></div></div>
+  `).join('');
+}
+function abrirFormProveedor(){
+  document.getElementById('pvNombre').value='';
+  abrirOverlay('overlayProveedor');
+}
+function guardarProveedor(){
+  const nombre = document.getElementById('pvNombre').value.trim();
+  if(!nombre){ alert('Indica el nombre del proveedor.'); return; }
+  if(!state.proveedores.includes(nombre)) state.proveedores.push(nombre);
+  guardarEnNube(); cerrarOverlay('overlayProveedor'); render();
+}
+function borrarProveedor(nombre){
+  state.proveedores = state.proveedores.filter(p=>p!==nombre);
+  guardarEnNube(); render();
 }
 
 function borrarFijo(id){
@@ -1083,10 +1161,6 @@ function importarDatos(){
   reader.readAsText(input.files[0]);
 }
 
-function editarFijo(id, valor){
-  const g = state.gastosFijos.find(x=>x.id===id);
-  if(g){ g.monto = Number(valor)||0; guardarEnNube(); render(); }
-}
 let fijoVencActivoId = null;
 function abrirVencFijo(id){
   fijoVencActivoId = id;
@@ -1115,12 +1189,54 @@ function renderIngresos(){
       d.bizum? 'Bizum '+euros(d.bizum):null
     ].filter(Boolean).join(' · ') : '';
     return `<div class="fila">
-      <div class="nombre">${x.fecha}<small>${partes}${x.nota? (partes?' — ':'')+x.nota:''}${x.usuario? ' · '+x.usuario:''}</small></div>
+      <div class="nombre" onclick="abrirFormIngreso('${x.id}')" style="cursor:pointer;">${formatearFecha(x.fecha)}<small>${partes}${x.nota? (partes?' — ':'')+x.nota:''}${x.usuario? ' · '+x.usuario:''}</small></div>
       <div class="monto verde">${euros(x.monto)}</div>
       <div class="acciones"><button class="icon-btn" onclick="borrarIngreso('${x.id}')">🗑️</button></div>
     </div>`;
   }).join('');
   document.getElementById('totalIngresosTab').textContent = euros(totalIngresosMes());
+  if(!document.getElementById('diaResumenFecha').value){
+    document.getElementById('diaResumenFecha').value = new Date().toISOString().slice(0,10);
+  }
+  renderResumenDia();
+}
+
+function renderResumenDia(){
+  const fecha = document.getElementById('diaResumenFecha').value;
+  const cont = document.getElementById('resumenDiaContenido');
+  if(!fecha){ cont.innerHTML = ''; return; }
+  const ingresosDia = state.ingresos.filter(x=>x.fecha===fecha);
+  const gastosDia = state.gastosVariables.filter(x=>x.fecha===fecha);
+  const efectivo = ingresosDia.reduce((s,x)=>s+Number(x.desglose?.efectivo||0),0);
+  const tarjeta = ingresosDia.reduce((s,x)=>s+Number(x.desglose?.tarjeta||0),0);
+  const bizum = ingresosDia.reduce((s,x)=>s+Number(x.desglose?.bizum||0),0);
+  const totalIng = ingresosDia.reduce((s,x)=>s+Number(x.monto),0);
+  const totalGas = gastosDia.reduce((s,x)=>s+Number(x.monto),0);
+
+  const fiadosNuevos = [];
+  const fiadosCobrados = [];
+  state.fiados.forEach(f=>{
+    (f.historial||[]).forEach(h=>{
+      if(h.fecha===fecha){
+        if(h.tipo==='deuda') fiadosNuevos.push({cliente:f.cliente, monto:h.monto});
+        else fiadosCobrados.push({cliente:f.cliente, monto:h.monto});
+      }
+    });
+  });
+  const totalFiadoNuevo = fiadosNuevos.reduce((s,x)=>s+Number(x.monto),0);
+  const totalFiadoCobrado = fiadosCobrados.reduce((s,x)=>s+Number(x.monto),0);
+  const neto = totalIng - totalGas;
+
+  cont.innerHTML = `
+    <div class="fila"><div class="nombre">Efectivo</div><div class="monto verde">${euros(efectivo)}</div></div>
+    <div class="fila"><div class="nombre">Tarjeta</div><div class="monto verde">${euros(tarjeta)}</div></div>
+    ${bizum ? `<div class="fila"><div class="nombre">Bizum</div><div class="monto verde">${euros(bizum)}</div></div>` : ''}
+    <div class="fila"><div class="nombre">Total ingresado</div><div class="monto verde">${euros(totalIng)}</div></div>
+    <div class="fila"><div class="nombre">Gastos del día ${gastosDia.length? '('+gastosDia.map(g=>g.concepto).join(', ')+')':''}</div><div class="monto rojo">${euros(totalGas)}</div></div>
+    ${fiadosNuevos.length ? `<div class="fila"><div class="nombre">Fiado nuevo (${fiadosNuevos.map(f=>f.cliente).join(', ')})</div><div class="monto rojo">${euros(totalFiadoNuevo)}</div></div>` : ''}
+    ${fiadosCobrados.length ? `<div class="fila"><div class="nombre">Fiado cobrado (${fiadosCobrados.map(f=>f.cliente).join(', ')})</div><div class="monto verde">${euros(totalFiadoCobrado)}</div></div>` : ''}
+    <div class="total-linea"><span>Neto del día</span><span>${euros(neto)}</span></div>
+  `;
 }
 
 function renderFiados(){
@@ -1133,7 +1249,7 @@ function renderFiados(){
     lf.innerHTML = ordenado.map(f=>{
       const sem = f.monto>1000?'rojo':(f.monto>300?'amarillo':'verde');
       return `<div class="fila">
-        <div class="nombre" onclick="abrirDetalleFiado('${f.id}')" style="cursor:pointer;"><span class="semaforo ${sem}"></span>${f.cliente}${f.historial && f.historial.length ? '<small>Último pago: '+f.historial[f.historial.length-1].fecha+' · '+euros(f.historial[f.historial.length-1].monto)+'</small>' : '<small>Toca para ver detalle</small>'}</div>
+        <div class="nombre" onclick="abrirDetalleFiado('${f.id}')" style="cursor:pointer;"><span class="semaforo ${sem}"></span>${f.cliente}${f.historial && f.historial.length ? '<small>Último movimiento: '+formatearFecha(f.historial[f.historial.length-1].fecha)+' · '+euros(f.historial[f.historial.length-1].monto)+'</small>' : '<small>Toca para ver detalle</small>'}</div>
         <div class="monto rojo">${euros(f.monto)}</div>
         <div class="acciones">
           <button class="icon-btn" onclick="abrirPagoFiado('${f.id}')">💶</button>
@@ -1157,51 +1273,102 @@ function renderPrestamo(){
 }
 
 function renderStock(){
-  const items = [...state.stock].sort((a,b)=> a.nombre.localeCompare(b.nombre));
-  document.getElementById('emptyStock').style.display = items.length? 'none':'block';
-  document.getElementById('listaStock').innerHTML = items.map(s=>{
-    const bajo = Number(s.cantidad) <= Number(s.minimo||0);
-    return `<div class="fila ${bajo?'stock-item low':''}">
-      <div class="nombre">${bajo?'⚠️ ':''}${s.nombre}<small>Mínimo aviso: ${s.minimo} ${s.unidad}</small></div>
-      <div class="monto">${s.cantidad} ${s.unidad}</div>
-      <div class="acciones"><button class="icon-btn" onclick="borrarStock('${s.id}')">🗑️</button></div>
-    </div>`;
-  }).join('');
-
+  const q = (document.getElementById('buscarCaducidad')?.value || '').toLowerCase().trim();
   const hoy = new Date(); hoy.setHours(0,0,0,0);
-  const cads = [...state.caducidades].map(c=>{
-    const fc = new Date(c.fecha+'T00:00:00');
-    const dias = Math.round((fc-hoy)/(1000*60*60*24));
-    return {...c, dias};
-  }).sort((a,b)=>a.dias-b.dias);
+  let cads = [...state.caducidades].map(c=>{
+    const fechas = c.fechas && c.fechas.length ? c.fechas : (c.fecha ? [c.fecha] : []);
+    const diasPorFecha = fechas.map(f => Math.round((new Date(f+'T00:00:00')-hoy)/(1000*60*60*24))).sort((a,b)=>a-b);
+    const diasMin = diasPorFecha.length ? diasPorFecha[0] : 9999;
+    return {...c, fechas, diasMin, diasPorFecha};
+  });
+  if(q) cads = cads.filter(c => c.nombre.toLowerCase().includes(q));
+  cads.sort((a,b)=>a.diasMin-b.diasMin);
   document.getElementById('emptyCaducidades').style.display = cads.length? 'none':'block';
   document.getElementById('listaCaducidades').innerHTML = cads.map(c=>{
-    const sem = c.dias<3 ? 'rojo' : (c.dias<7 ? 'amarillo' : 'verde');
-    const texto = c.dias<0 ? 'Caducó hace '+Math.abs(c.dias)+' día(s)' : (c.dias===0? 'Caduca hoy' : 'Caduca en '+c.dias+' día(s)');
+    const sem = c.diasMin<3 ? 'rojo' : (c.diasMin<7 ? 'amarillo' : 'verde');
+    const fechasTexto = c.fechas.map(f=>formatearFecha(f)).join(' · ');
+    const detalles = [c.familia, c.ubicacion].filter(Boolean).join(' · ');
     return `<div class="fila">
-      <div class="nombre"><span class="semaforo ${sem}"></span>${c.nombre}${c.nota? '<small>'+c.nota+'</small>':''}</div>
-      <div class="monto">${texto}</div>
+      <div class="nombre" onclick="abrirFormCaducidad('${c.id}')" style="cursor:pointer;"><span class="semaforo ${sem}"></span>${c.nombre}<small>${fechasTexto}${detalles? ' · '+detalles:''}${c.nota? ' · '+c.nota:''}</small></div>
       <div class="acciones"><button class="icon-btn" onclick="borrarCaducidad('${c.id}')">🗑️</button></div>
     </div>`;
   }).join('');
+
+  renderFamiliasLista();
 }
 
-function abrirFormCaducidad(){
-  document.getElementById('cdNombre').value='';
-  document.getElementById('cdFecha').value = new Date().toISOString().slice(0,10);
-  document.getElementById('cdNota').value='';
+let caducidadEditandoId = null;
+function agregarCampoFecha(valor){
+  const cont = document.getElementById('cdFechasLista');
+  const row = document.createElement('div');
+  row.style.display = 'flex'; row.style.gap = '6px'; row.style.marginTop = '4px';
+  row.innerHTML = `<input type="date" class="cd-fecha-input" style="flex:1;" value="${valor||''}">
+    <button type="button" class="icon-btn" onclick="this.parentElement.remove()">🗑️</button>`;
+  cont.appendChild(row);
+}
+function abrirFormCaducidad(id){
+  caducidadEditandoId = id || null;
+  const selFamilia = document.getElementById('cdFamilia');
+  selFamilia.innerHTML = '<option value="">Sin familia</option>' + state.familiasCaducidad.map(f=>`<option value="${f}">${f}</option>`).join('');
+  document.getElementById('cdFechasLista').innerHTML = '';
+  if(id){
+    const c = state.caducidades.find(x=>x.id===id);
+    document.getElementById('cdTitulo').textContent = 'Editar producto';
+    document.getElementById('cdNombre').value = c.nombre;
+    selFamilia.value = c.familia || '';
+    document.getElementById('cdUbicacion').value = c.ubicacion || '';
+    document.getElementById('cdNota').value = c.nota || '';
+    const fechas = c.fechas && c.fechas.length ? c.fechas : (c.fecha ? [c.fecha] : ['']);
+    fechas.forEach(f=>agregarCampoFecha(f));
+  } else {
+    document.getElementById('cdTitulo').textContent = 'Producto con caducidad';
+    document.getElementById('cdNombre').value='';
+    selFamilia.value = '';
+    document.getElementById('cdUbicacion').value='';
+    document.getElementById('cdNota').value='';
+    agregarCampoFecha(new Date().toISOString().slice(0,10));
+  }
   abrirOverlay('overlayCaducidad');
 }
 function guardarCaducidad(){
   const nombre = document.getElementById('cdNombre').value.trim();
-  const fecha = document.getElementById('cdFecha').value;
+  const familia = document.getElementById('cdFamilia').value;
+  const ubicacion = document.getElementById('cdUbicacion').value.trim();
   const nota = document.getElementById('cdNota').value.trim();
-  if(!nombre || !fecha){ alert('Indica nombre y fecha de caducidad.'); return; }
-  state.caducidades.push({id:cid(), nombre, fecha, nota});
-  guardarEnNube(); cerrarOverlay('overlayCaducidad'); render();
+  const fechas = Array.from(document.querySelectorAll('.cd-fecha-input')).map(i=>i.value).filter(Boolean);
+  if(!nombre || !fechas.length){ alert('Indica nombre y al menos una fecha de caducidad.'); return; }
+  if(caducidadEditandoId){
+    const c = state.caducidades.find(x=>x.id===caducidadEditandoId);
+    if(c){ c.nombre=nombre; c.familia=familia; c.ubicacion=ubicacion; c.nota=nota; c.fechas=fechas; delete c.fecha; }
+  } else {
+    state.caducidades.push({id:cid(), nombre, familia, ubicacion, nota, fechas});
+  }
+  guardarEnNube(); cerrarOverlay('overlayCaducidad'); caducidadEditandoId=null; render();
 }
 function borrarCaducidad(id){
   state.caducidades = state.caducidades.filter(x=>x.id!==id);
+  guardarEnNube(); render();
+}
+
+function renderFamiliasLista(){
+  const cont = document.getElementById('listaFamilias');
+  if(!cont) return;
+  cont.innerHTML = state.familiasCaducidad.map(f=>`
+    <div class="fila"><div class="nombre">${f}</div><div class="acciones"><button class="icon-btn" onclick="borrarFamilia('${f.replace(/'/g,"\\'")}')">🗑️</button></div></div>
+  `).join('');
+}
+function abrirFormFamilia(){
+  document.getElementById('fmNombre').value='';
+  abrirOverlay('overlayFamilia');
+}
+function guardarFamilia(){
+  const nombre = document.getElementById('fmNombre').value.trim();
+  if(!nombre){ alert('Indica el nombre de la familia.'); return; }
+  if(!state.familiasCaducidad.includes(nombre)) state.familiasCaducidad.push(nombre);
+  guardarEnNube(); cerrarOverlay('overlayFamilia'); render();
+}
+function borrarFamilia(nombre){
+  state.familiasCaducidad = state.familiasCaducidad.filter(f=>f!==nombre);
   guardarEnNube(); render();
 }
 
@@ -1214,6 +1381,8 @@ function abrirFormGasto(){
   document.getElementById('gConcepto').value='';
   document.getElementById('gMonto').value='';
   document.getElementById('gMetodo').value='efectivo';
+  const sel = document.getElementById('gProveedor');
+  sel.innerHTML = '<option value="">Sin especificar</option>' + state.proveedores.map(p=>`<option value="${p}">${p}</option>`).join('');
   abrirOverlay('overlayGasto');
 }
 function guardarGasto(){
@@ -1222,18 +1391,30 @@ function guardarGasto(){
   const monto = Number(document.getElementById('gMonto').value);
   const categoria = document.getElementById('gCategoria').value;
   const metodo = document.getElementById('gMetodo').value;
+  const proveedor = document.getElementById('gProveedor').value;
   if(!fecha || !concepto || !monto){ alert('Rellena fecha, concepto e importe.'); return; }
-  state.gastosVariables.push({id:cid(), fecha, concepto, monto, categoria, metodo, usuario: usuarioActual()});
+  state.gastosVariables.push({id:cid(), fecha, concepto, monto, categoria, metodo, proveedor, usuario: usuarioActual()});
   guardarEnNube(); cerrarOverlay('overlayGasto'); render();
 }
 function borrarVariable(id){ state.gastosVariables = state.gastosVariables.filter(x=>x.id!==id); guardarEnNube(); render(); }
 
-function abrirFormIngreso(){
-  document.getElementById('iFecha').value = new Date().toISOString().slice(0,10);
-  document.getElementById('iEfectivo').value='';
-  document.getElementById('iTarjeta').value='';
-  document.getElementById('iBizum').value='';
-  document.getElementById('iNota').value='';
+let ingresoEditandoId = null;
+function abrirFormIngreso(id){
+  ingresoEditandoId = id || null;
+  if(id){
+    const x = state.ingresos.find(i=>i.id===id);
+    document.getElementById('iFecha').value = x.fecha;
+    document.getElementById('iEfectivo').value = x.desglose?.efectivo || '';
+    document.getElementById('iTarjeta').value = x.desglose?.tarjeta || '';
+    document.getElementById('iBizum').value = x.desglose?.bizum || '';
+    document.getElementById('iNota').value = x.nota || '';
+  } else {
+    document.getElementById('iFecha').value = new Date().toISOString().slice(0,10);
+    document.getElementById('iEfectivo').value='';
+    document.getElementById('iTarjeta').value='';
+    document.getElementById('iBizum').value='';
+    document.getElementById('iNota').value='';
+  }
   abrirOverlay('overlayIngreso');
 }
 function guardarIngreso(){
@@ -1244,8 +1425,13 @@ function guardarIngreso(){
   const nota = document.getElementById('iNota').value.trim();
   const monto = efectivo + tarjeta + bizum;
   if(!fecha || !monto){ alert('Rellena la fecha y al menos un importe.'); return; }
-  state.ingresos.push({id:cid(), fecha, monto, nota, desglose:{efectivo, tarjeta, bizum}, usuario: usuarioActual()});
-  guardarEnNube(); cerrarOverlay('overlayIngreso'); render();
+  if(ingresoEditandoId){
+    const x = state.ingresos.find(i=>i.id===ingresoEditandoId);
+    if(x){ x.fecha=fecha; x.monto=monto; x.nota=nota; x.desglose={efectivo,tarjeta,bizum}; }
+  } else {
+    state.ingresos.push({id:cid(), fecha, monto, nota, desglose:{efectivo, tarjeta, bizum}, usuario: usuarioActual()});
+  }
+  guardarEnNube(); cerrarOverlay('overlayIngreso'); ingresoEditandoId = null; render();
 }
 function borrarIngreso(id){ state.ingresos = state.ingresos.filter(x=>x.id!==id); guardarEnNube(); render(); }
 
@@ -1277,16 +1463,32 @@ function abrirDetalleFiado(id){
   const f = state.fiados.find(x=>x.id===id);
   document.getElementById('dfNombre').textContent = f.cliente;
   document.getElementById('dfMonto').textContent = euros(f.monto);
-  const totalPagado = (f.historial||[]).reduce((s,h)=>s+Number(h.monto||0),0);
+  const totalPagado = (f.historial||[]).filter(h=>h.tipo==='pago').reduce((s,h)=>s+Number(h.monto||0),0);
   document.getElementById('dfPagadoTotal').textContent = euros(totalPagado);
   const contactoPartes = [f.telefono, f.nota].filter(Boolean);
   document.getElementById('dfContacto').textContent = contactoPartes.length ? contactoPartes.join(' · ') : 'Sin teléfono ni nota guardados.';
   const hist = [...(f.historial||[])].sort((a,b)=> b.fecha.localeCompare(a.fecha));
   document.getElementById('dfHistorialVacio').style.display = hist.length? 'none':'block';
   document.getElementById('dfHistorial').innerHTML = hist.map(h=>`
-    <div class="fila"><div class="nombre">${h.fecha}${h.tipo==='deuda'?'<small>Nueva compra fiada'+(h.nota?': '+h.nota:'')+'</small>':'<small>Pago recibido</small>'}</div><div class="monto ${h.tipo==='deuda'?'rojo':'verde'}">${h.tipo==='deuda'?'+':'-'}${euros(h.monto)}</div></div>
+    <div class="fila"><div class="nombre">${formatearFecha(h.fecha)}${h.tipo==='deuda'?'<small>Nueva compra fiada'+(h.nota?': '+h.nota:'')+'</small>':'<small>Pago recibido</small>'}</div><div class="monto ${h.tipo==='deuda'?'rojo':'verde'}">${h.tipo==='deuda'?'+':'-'}${euros(h.monto)}</div><div class="acciones"><button class="icon-btn" onclick="borrarMovimientoFiado('${h.id}')">🗑️</button></div></div>
   `).join('');
   abrirOverlay('overlayDetalleFiado');
+}
+function borrarMovimientoFiado(movId){
+  const f = state.fiados.find(x=>x.id===fiadoActivoId);
+  if(!f) return;
+  const mov = (f.historial||[]).find(h=>h.id===movId);
+  if(!mov) return;
+  if(!confirm('¿Eliminar este movimiento? Se ajustará la deuda del cliente.')) return;
+  if(mov.tipo==='deuda'){
+    f.monto = Math.max(0, Number(f.monto) - Number(mov.monto));
+  } else {
+    f.monto = Number(f.monto) + Number(mov.monto);
+  }
+  f.historial = f.historial.filter(h=>h.id!==movId);
+  guardarEnNube();
+  abrirDetalleFiado(fiadoActivoId);
+  render();
 }
 function abrirAumentoDeuda(){
   const f = state.fiados.find(x=>x.id===fiadoActivoId);
@@ -1305,7 +1507,7 @@ function guardarAumentoDeuda(){
   if(f){
     f.monto = Number(f.monto) + monto;
     f.historial = f.historial || [];
-    f.historial.push({fecha, monto, tipo:'deuda', nota});
+    f.historial.push({id:cid(), fecha, monto, tipo:'deuda', nota});
   }
   guardarEnNube(); cerrarOverlay('overlayAumentoDeuda'); cerrarOverlay('overlayDetalleFiado'); render();
 }
@@ -1331,7 +1533,7 @@ function guardarPagoFiado(){
   if(f){
     f.monto = Math.max(0, f.monto - monto);
     f.historial = f.historial || [];
-    f.historial.push({fecha: new Date().toISOString().slice(0,10), monto, tipo:'pago'});
+    f.historial.push({id:cid(), fecha: new Date().toISOString().slice(0,10), monto, tipo:'pago'});
     if(sumarIngreso){
       const desglose = {efectivo:0, tarjeta:0, bizum:0};
       desglose[metodo] = monto;
@@ -1367,24 +1569,6 @@ function renovarCiclo(){
   p.saldo = p.montoInicial;
   guardarEnNube(); render();
 }
-
-function abrirFormStock(){
-  document.getElementById('sNombre').value='';
-  document.getElementById('sCantidad').value='';
-  document.getElementById('sUnidad').value='';
-  document.getElementById('sMinimo').value='';
-  abrirOverlay('overlayStock');
-}
-function guardarStock(){
-  const nombre = document.getElementById('sNombre').value.trim();
-  const cantidad = Number(document.getElementById('sCantidad').value);
-  const unidad = document.getElementById('sUnidad').value.trim() || 'uds';
-  const minimo = Number(document.getElementById('sMinimo').value)||0;
-  if(!nombre){ alert('Indica el nombre del producto.'); return; }
-  state.stock.push({id:cid(), nombre, cantidad, unidad, minimo});
-  guardarEnNube(); cerrarOverlay('overlayStock'); render();
-}
-function borrarStock(id){ state.stock = state.stock.filter(x=>x.id!==id); guardarEnNube(); render(); }
 </script>
 </body>
 </html>
