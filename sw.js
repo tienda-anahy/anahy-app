@@ -1,4 +1,4 @@
-const CACHE_NAME = 'anahy-v1';
+const CACHE_NAME = 'anahy-v2';
 const APP_SHELL = [
   './',
   './index.html',
@@ -29,7 +29,12 @@ self.addEventListener('fetch', (event) => {
   if (url.hostname.includes('firestore') || url.hostname.includes('googleapis') || url.hostname.includes('firebaseio')) {
     return;
   }
+  // Red primero, para que las actualizaciones se vean de inmediato; caché solo como respaldo sin internet
   event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
+    fetch(event.request).then((response) => {
+      const clone = response.clone();
+      caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+      return response;
+    }).catch(() => caches.match(event.request))
   );
 });
