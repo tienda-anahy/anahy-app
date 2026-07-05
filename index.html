@@ -179,6 +179,8 @@
 
   .aviso{ background: rgba(232,121,45,0.12); border:1px solid rgba(232,121,45,0.35); color: var(--papaya-oscuro); font-family:'Segoe UI',sans-serif; font-size:0.8rem; padding:10px 12px; border-radius:12px; margin-bottom:14px; }
   .aviso.critico{ background: rgba(193,68,59,0.12); border-color: rgba(193,68,59,0.35); color: var(--rojo); }
+
+  input[type="date"]{ min-width:0; max-width:100%; box-sizing:border-box; -webkit-appearance:none; appearance:none; }
 </style>
 </head>
 <body>
@@ -563,6 +565,15 @@
   </div>
 </div>
 
+<div class="form-overlay" id="overlayFamiliaProductos">
+  <div class="form-sheet">
+    <h3 id="fpTitulo">Familia</h3>
+    <div id="fpLista"></div>
+    <div class="empty" id="fpVacio" style="display:none;">Aún no hay productos en esta familia.</div>
+    <button class="btn secundario" style="margin-top:14px;" onclick="cerrarOverlay('overlayFamiliaProductos')">Cerrar</button>
+  </div>
+</div>
+
 <div class="form-overlay" id="overlayFamilia">
   <div class="form-sheet">
     <h3>Nueva familia</h3>
@@ -816,6 +827,16 @@ function cerrarSesion(){
   }
 }
 
+function normalizarEstado(st){
+  let necesitaGuardar = false;
+  (st.fiados||[]).forEach(f=>{
+    (f.historial||[]).forEach(h=>{
+      if(!h.id){ h.id = cid(); necesitaGuardar = true; }
+    });
+  });
+  return necesitaGuardar;
+}
+
 function iniciarApp(){
   document.getElementById('setupScreen').style.display = 'none';
   document.getElementById('appRoot').style.display = 'block';
@@ -829,6 +850,7 @@ function iniciarApp(){
       state = data.json ? JSON.parse(data.json) : def;
       for(const k in def){ if(!(k in state)) state[k] = def[k]; }
       setSync(true);
+      if(normalizarEstado(state)){ guardarEnNube(); }
     } else {
       state = defaultState();
       guardarEnNube();
@@ -1286,7 +1308,11 @@ function renderStock(){
   document.getElementById('emptyCaducidades').style.display = cads.length? 'none':'block';
   document.getElementById('listaCaducidades').innerHTML = cads.map(c=>{
     const sem = c.diasMin<3 ? 'rojo' : (c.diasMin<7 ? 'amarillo' : 'verde');
-    const fechasTexto = c.fechas.map(f=>formatearFecha(f)).join(' · ');
+    const fechasTexto = c.fechas.map(f=>{
+      const dias = Math.round((new Date(f+'T00:00:00')-hoy)/(1000*60*60*24));
+      const txt = dias<0 ? 'caducó hace '+Math.abs(dias)+'d' : (dias===0? 'caduca hoy' : 'en '+dias+'d');
+      return formatearFecha(f)+' ('+txt+')';
+    }).join(' · ');
     const detalles = [c.familia, c.ubicacion].filter(Boolean).join(' · ');
     return `<div class="fila">
       <div class="nombre" onclick="abrirFormCaducidad('${c.id}')" style="cursor:pointer;"><span class="semaforo ${sem}"></span>${c.nombre}<small>${fechasTexto}${detalles? ' · '+detalles:''}${c.nota? ' · '+c.nota:''}</small></div>
@@ -1354,8 +1380,24 @@ function renderFamiliasLista(){
   const cont = document.getElementById('listaFamilias');
   if(!cont) return;
   cont.innerHTML = state.familiasCaducidad.map(f=>`
-    <div class="fila"><div class="nombre">${f}</div><div class="acciones"><button class="icon-btn" onclick="borrarFamilia('${f.replace(/'/g,"\\'")}')">🗑️</button></div></div>
+    <div class="fila"><div class="nombre" onclick="verProductosFamilia('${f.replace(/'/g,"\\'")}')" style="cursor:pointer;">${f}</div><div class="acciones"><button class="icon-btn" onclick="borrarFamilia('${f.replace(/'/g,"\\'")}')">🗑️</button></div></div>
   `).join('');
+}
+function verProductosFamilia(familia){
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const items = state.caducidades.filter(c=>c.familia===familia);
+  document.getElementById('fpTitulo').textContent = familia;
+  document.getElementById('fpVacio').style.display = items.length? 'none':'block';
+  document.getElementById('fpLista').innerHTML = items.map(c=>{
+    const fechas = c.fechas || [];
+    const fechasTexto = fechas.map(f=>{
+      const dias = Math.round((new Date(f+'T00:00:00')-hoy)/(1000*60*60*24));
+      const txt = dias<0 ? 'caducó hace '+Math.abs(dias)+'d' : (dias===0? 'caduca hoy' : 'en '+dias+'d');
+      return formatearFecha(f)+' ('+txt+')';
+    }).join(' · ');
+    return `<div class="fila"><div class="nombre">${c.nombre}<small>${fechasTexto}</small></div></div>`;
+  }).join('');
+  abrirOverlay('overlayFamiliaProductos');
 }
 function abrirFormFamilia(){
   document.getElementById('fmNombre').value='';
