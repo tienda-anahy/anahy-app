@@ -1155,15 +1155,15 @@ function guardarProveedor(){
   guardarEnNube(); cerrarOverlay('overlayProveedor'); render();
 }
 function borrarProveedor(nombre){
+  if(!confirmarBorradoDoble('¿Eliminar el proveedor "'+nombre+'"?')) return;
   state.proveedores = state.proveedores.filter(p=>p!==nombre);
   guardarEnNube(); render();
 }
 
 function borrarFijo(id){
-  if(confirm('¿Eliminar este gasto fijo? Ya no se contará cada mes.')){
-    state.gastosFijos = state.gastosFijos.filter(x=>x.id!==id);
-    guardarEnNube(); render();
-  }
+  if(!confirmarBorradoDoble('¿Eliminar este gasto fijo? Ya no se contará cada mes.')) return;
+  state.gastosFijos = state.gastosFijos.filter(x=>x.id!==id);
+  guardarEnNube(); render();
 }
 function abrirFormFijo(){
   document.getElementById('nfNombre').value='';
@@ -1355,10 +1355,10 @@ function renderStock(){
     const textoGrande = c.diasMin<0 ? 'Caducó hace '+Math.abs(c.diasMin)+' día(s)' : (c.diasMin===0 ? 'Caduca hoy' : 'Caduca en '+c.diasMin+' día(s)');
     return `<div class="card" style="padding:14px; margin-bottom:10px;" onclick="abrirFormCaducidad('${c.id}')">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
-        <div style="font-family:Georgia,serif; font-weight:700; font-size:1.05rem;">${c.nombre}</div>
+        <div style="font-family:'Segoe UI',sans-serif; font-weight:600; font-size:0.92rem;">${c.nombre}</div>
         <button class="icon-btn" onclick="event.stopPropagation(); borrarCaducidad('${c.id}')">🗑️</button>
       </div>
-      <div style="font-family:'Segoe UI',sans-serif; font-weight:800; font-size:1.15rem; color:${color}; margin-top:8px; display:flex; align-items:center; gap:6px;">
+      <div style="font-family:'Segoe UI',sans-serif; font-weight:700; font-size:0.95rem; color:${color}; margin-top:6px; display:flex; align-items:center; gap:6px;">
         <span class="semaforo ${sem}"></span>${textoGrande}
       </div>
     </div>`;
@@ -1416,6 +1416,7 @@ function guardarCaducidad(){
   guardarEnNube(); cerrarOverlay('overlayCaducidad'); caducidadEditandoId=null; render();
 }
 function borrarCaducidad(id){
+  if(!confirmarBorradoDoble('¿Eliminar este producto de caducidad?')) return;
   state.caducidades = state.caducidades.filter(x=>x.id!==id);
   guardarEnNube(); render();
 }
@@ -1464,11 +1465,18 @@ function guardarFamilia(){
   guardarEnNube(); cerrarOverlay('overlayFamilia'); render();
 }
 function borrarFamilia(nombre){
+  if(!confirmarBorradoDoble('¿Eliminar la familia "'+nombre+'"? Los productos que la tenían asignada no se borrarán, solo quedarán sin familia.')) return;
   state.familiasCaducidad = state.familiasCaducidad.filter(f=>f!==nombre);
   guardarEnNube(); render();
 }
 
 // ---- overlays ----
+function confirmarBorradoDoble(mensaje){
+  if(!confirm(mensaje)) return false;
+  if(!confirm('¿Seguro del todo? Esta acción no se puede deshacer.')) return false;
+  return true;
+}
+
 function abrirOverlay(id){ document.getElementById(id).classList.add('show'); }
 function cerrarOverlay(id){ document.getElementById(id).classList.remove('show'); }
 document.addEventListener('click', function(e){
@@ -1497,7 +1505,10 @@ function guardarGasto(){
   state.gastosVariables.push({id:cid(), fecha, concepto, monto, categoria, metodo, proveedor, usuario: usuarioActual()});
   guardarEnNube(); cerrarOverlay('overlayGasto'); render();
 }
-function borrarVariable(id){ state.gastosVariables = state.gastosVariables.filter(x=>x.id!==id); guardarEnNube(); render(); }
+function borrarVariable(id){
+  if(!confirmarBorradoDoble('¿Eliminar este gasto imprevisto?')) return;
+  state.gastosVariables = state.gastosVariables.filter(x=>x.id!==id); guardarEnNube(); render();
+}
 
 let ingresoEditandoId = null;
 function abrirFormIngreso(id){
@@ -1534,7 +1545,10 @@ function guardarIngreso(){
   }
   guardarEnNube(); cerrarOverlay('overlayIngreso'); ingresoEditandoId = null; render();
 }
-function borrarIngreso(id){ state.ingresos = state.ingresos.filter(x=>x.id!==id); guardarEnNube(); render(); }
+function borrarIngreso(id){
+  if(!confirmarBorradoDoble('¿Eliminar este ingreso?')) return;
+  state.ingresos = state.ingresos.filter(x=>x.id!==id); guardarEnNube(); render();
+}
 
 function abrirFormFiado(){
   document.getElementById('fNombre').value='';
@@ -1553,10 +1567,9 @@ function guardarFiado(){
   guardarEnNube(); cerrarOverlay('overlayFiado'); render();
 }
 function borrarFiado(id){
-  if(confirm('¿Eliminar este cliente de la lista de fiados?')){
-    state.fiados = state.fiados.filter(x=>x.id!==id);
-    guardarEnNube(); render();
-  }
+  if(!confirmarBorradoDoble('¿Eliminar este cliente de la lista de fiados? Se perderá todo su historial.')) return;
+  state.fiados = state.fiados.filter(x=>x.id!==id);
+  guardarEnNube(); render();
 }
 let fiadoActivoId = null;
 function abrirDetalleFiado(id){
@@ -1580,7 +1593,7 @@ function borrarMovimientoFiado(movId){
   if(!f) return;
   const mov = (f.historial||[]).find(h=>h.id===movId);
   if(!mov) return;
-  if(!confirm('¿Eliminar este movimiento? Se ajustará la deuda del cliente.')) return;
+  if(!confirmarBorradoDoble('¿Eliminar este movimiento? Se ajustará la deuda del cliente.')) return;
   if(mov.tipo==='deuda'){
     f.monto = Math.max(0, Number(f.monto) - Number(mov.monto));
   } else {
