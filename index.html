@@ -373,7 +373,15 @@
     <div class="card">
       <h2>Caducidades</h2>
       <input type="text" id="buscarCaducidad" placeholder="🔎 Buscar producto..." oninput="renderStock()"
-        style="width:100%; padding:10px; border:1px solid var(--borde); border-radius:9px; font-family:'Segoe UI',sans-serif; font-size:0.9rem; background:var(--crema); color:var(--tinta); margin-bottom:10px;">
+        style="width:100%; padding:10px; border:1px solid var(--borde); border-radius:9px; font-family:'Segoe UI',sans-serif; font-size:0.9rem; background:var(--crema); color:var(--tinta); margin-bottom:8px;">
+      <select id="filtroCaducidad" onchange="renderStock()" style="width:100%; padding:10px; border:1px solid var(--borde); border-radius:9px; font-family:'Segoe UI',sans-serif; font-size:0.9rem; background:var(--crema); color:var(--tinta); margin-bottom:10px;">
+        <option value="proximos">Más próximos a caducar primero</option>
+        <option value="lejanos">Más lejanos primero</option>
+        <option value="az">Alfabético (A-Z)</option>
+        <option value="urgente">Solo urgentes (3 días o menos)</option>
+        <option value="semana">Caducan esta semana (7 días o menos)</option>
+        <option value="caducados">Ya caducados</option>
+      </select>
       <div id="listaCaducidades"></div>
       <div class="empty" id="emptyCaducidades" style="display:none;">Aún no hay productos con caducidad apuntados.</div>
       <button class="btn" style="margin-top:14px;" onclick="abrirFormCaducidad()">+ Añadir producto</button>
@@ -541,6 +549,23 @@
   </div>
 </div>
 
+<div class="form-overlay" id="overlayRegistrarPago">
+  <div class="form-sheet">
+    <h3>Registrar pago de hoy</h3>
+    <p style="font-family:'Segoe UI',sans-serif;">Fecha: <strong id="rpFecha"></strong><br>Importe: <strong id="rpMonto"></strong></p>
+    <div class="aviso" id="rpAvisoDomingo" style="display:none;">Hoy es domingo, normalmente no se cobra. Puedes registrarlo igualmente si corresponde.</div>
+    <label style="display:flex; align-items:center; gap:8px; margin-top:10px;">
+      <input type="checkbox" id="rpSumarGasto" style="width:auto;">
+      Añadir también como gasto imprevisto de hoy
+    </label>
+    <p style="font-size:0.74rem; color:var(--tinta-suave); margin-top:6px;">Márcalo solo si este dinero sale de la caja de la tienda y quieres que se refleje como gasto del día. Si ya lo llevas aparte, déjalo sin marcar.</p>
+    <div class="form-btns">
+      <button class="btn secundario" onclick="cerrarOverlay('overlayRegistrarPago')">Cancelar</button>
+      <button class="btn" onclick="confirmarRegistrarPago()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <div class="form-overlay" id="overlayAjusteSaldo">
   <div class="form-sheet">
     <h3>Ajustar saldo pendiente</h3>
@@ -572,10 +597,12 @@
 
 <div class="form-overlay" id="overlayFamiliaProductos">
   <div class="form-sheet">
-    <h3 id="fpTitulo">Familia</h3>
-    <div id="fpLista"></div>
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h3 id="fpTitulo" style="margin:0;">Familia</h3>
+      <button class="icon-btn" style="font-size:1.4rem;" onclick="cerrarOverlay('overlayFamiliaProductos')">✕</button>
+    </div>
+    <div id="fpLista" style="margin-top:10px;"></div>
     <div class="empty" id="fpVacio" style="display:none;">Aún no hay productos en esta familia.</div>
-    <button class="btn secundario" style="margin-top:14px;" onclick="cerrarOverlay('overlayFamiliaProductos')">Cerrar</button>
   </div>
 </div>
 
@@ -1306,27 +1333,34 @@ function renderPrestamo(){
 
 function renderStock(){
   const q = (document.getElementById('buscarCaducidad')?.value || '').toLowerCase().trim();
+  const filtro = document.getElementById('filtroCaducidad')?.value || 'proximos';
   const hoy = new Date(); hoy.setHours(0,0,0,0);
   let cads = [...state.caducidades].map(c=>{
     const fechas = c.fechas && c.fechas.length ? c.fechas : (c.fecha ? [c.fecha] : []);
     const diasPorFecha = fechas.map(f => Math.round((new Date(f+'T00:00:00')-hoy)/(1000*60*60*24))).sort((a,b)=>a-b);
     const diasMin = diasPorFecha.length ? diasPorFecha[0] : 9999;
-    return {...c, fechas, diasMin, diasPorFecha};
+    return {...c, fechas, diasMin};
   });
   if(q) cads = cads.filter(c => c.nombre.toLowerCase().includes(q));
-  cads.sort((a,b)=>a.diasMin-b.diasMin);
+  if(filtro==='urgente') cads = cads.filter(c => c.diasMin<=3);
+  if(filtro==='semana') cads = cads.filter(c => c.diasMin<=7);
+  if(filtro==='caducados') cads = cads.filter(c => c.diasMin<0);
+  if(filtro==='az') cads.sort((a,b)=> a.nombre.localeCompare(b.nombre));
+  else if(filtro==='lejanos') cads.sort((a,b)=> b.diasMin-a.diasMin);
+  else cads.sort((a,b)=>a.diasMin-b.diasMin);
   document.getElementById('emptyCaducidades').style.display = cads.length? 'none':'block';
   document.getElementById('listaCaducidades').innerHTML = cads.map(c=>{
     const sem = c.diasMin<3 ? 'rojo' : (c.diasMin<7 ? 'amarillo' : 'verde');
-    const fechasTexto = c.fechas.map(f=>{
-      const dias = Math.round((new Date(f+'T00:00:00')-hoy)/(1000*60*60*24));
-      const txt = dias<0 ? 'caducó hace '+Math.abs(dias)+'d' : (dias===0? 'caduca hoy' : 'en '+dias+'d');
-      return formatearFecha(f)+' ('+txt+')';
-    }).join(' · ');
-    const detalles = [c.familia, c.ubicacion].filter(Boolean).join(' · ');
-    return `<div class="fila">
-      <div class="nombre" onclick="abrirFormCaducidad('${c.id}')" style="cursor:pointer;"><span class="semaforo ${sem}"></span>${c.nombre}<small>${fechasTexto}${detalles? ' · '+detalles:''}${c.nota? ' · '+c.nota:''}</small></div>
-      <div class="acciones"><button class="icon-btn" onclick="borrarCaducidad('${c.id}')">🗑️</button></div>
+    const color = c.diasMin<3 ? 'var(--rojo)' : (c.diasMin<7 ? 'var(--papaya-oscuro)' : 'var(--verde-claro)');
+    const textoGrande = c.diasMin<0 ? 'Caducó hace '+Math.abs(c.diasMin)+' día(s)' : (c.diasMin===0 ? 'Caduca hoy' : 'Caduca en '+c.diasMin+' día(s)');
+    return `<div class="card" style="padding:14px; margin-bottom:10px;" onclick="abrirFormCaducidad('${c.id}')">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+        <div style="font-family:Georgia,serif; font-weight:700; font-size:1.05rem;">${c.nombre}</div>
+        <button class="icon-btn" onclick="event.stopPropagation(); borrarCaducidad('${c.id}')">🗑️</button>
+      </div>
+      <div style="font-family:'Segoe UI',sans-serif; font-weight:800; font-size:1.15rem; color:${color}; margin-top:8px; display:flex; align-items:center; gap:6px;">
+        <span class="semaforo ${sem}"></span>${textoGrande}
+      </div>
     </div>`;
   }).join('');
 
@@ -1395,17 +1429,27 @@ function renderFamiliasLista(){
 }
 function verProductosFamilia(familia){
   const hoy = new Date(); hoy.setHours(0,0,0,0);
-  const items = state.caducidades.filter(c=>c.familia===familia);
+  const items = state.caducidades.filter(c=>c.familia===familia).map(c=>{
+    const fechas = c.fechas && c.fechas.length ? c.fechas : (c.fecha ? [c.fecha] : []);
+    const diasPorFecha = fechas.map(f => Math.round((new Date(f+'T00:00:00')-hoy)/(1000*60*60*24))).sort((a,b)=>a-b);
+    const diasMin = diasPorFecha.length ? diasPorFecha[0] : 9999;
+    return {...c, fechas, diasMin};
+  }).sort((a,b)=>a.diasMin-b.diasMin);
   document.getElementById('fpTitulo').textContent = familia;
   document.getElementById('fpVacio').style.display = items.length? 'none':'block';
   document.getElementById('fpLista').innerHTML = items.map(c=>{
-    const fechas = c.fechas || [];
-    const fechasTexto = fechas.map(f=>{
-      const dias = Math.round((new Date(f+'T00:00:00')-hoy)/(1000*60*60*24));
-      const txt = dias<0 ? 'caducó hace '+Math.abs(dias)+'d' : (dias===0? 'caduca hoy' : 'en '+dias+'d');
-      return formatearFecha(f)+' ('+txt+')';
-    }).join(' · ');
-    return `<div class="fila"><div class="nombre">${c.nombre}<small>${fechasTexto}</small></div></div>`;
+    const sem = c.diasMin<3 ? 'rojo' : (c.diasMin<7 ? 'amarillo' : 'verde');
+    const color = c.diasMin<3 ? 'var(--rojo)' : (c.diasMin<7 ? 'var(--papaya-oscuro)' : 'var(--verde-claro)');
+    const textoGrande = c.diasMin<0 ? 'Caducó hace '+Math.abs(c.diasMin)+' día(s)' : (c.diasMin===0 ? 'Caduca hoy' : 'Caduca en '+c.diasMin+' día(s)');
+    const fechasTexto = c.fechas.map(f=>formatearFecha(f)).join(' · ');
+    return `<div class="card" style="padding:12px; margin-bottom:8px;">
+      <div style="font-family:Georgia,serif; font-weight:700; font-size:1rem;">${c.nombre}</div>
+      ${c.ubicacion? `<div style="font-family:'Segoe UI',sans-serif; font-size:0.78rem; color:var(--tinta-suave);">📍 ${c.ubicacion}</div>` : ''}
+      <div style="font-family:'Segoe UI',sans-serif; font-weight:800; font-size:1.05rem; color:${color}; margin-top:6px; display:flex; align-items:center; gap:6px;">
+        <span class="semaforo ${sem}"></span>${textoGrande}
+      </div>
+      <div style="font-family:'Segoe UI',sans-serif; font-size:0.7rem; color:var(--tinta-suave); margin-top:3px;">${fechasTexto}</div>
+    </div>`;
   }).join('');
   abrirOverlay('overlayFamiliaProductos');
 }
@@ -1427,6 +1471,11 @@ function borrarFamilia(nombre){
 // ---- overlays ----
 function abrirOverlay(id){ document.getElementById(id).classList.add('show'); }
 function cerrarOverlay(id){ document.getElementById(id).classList.remove('show'); }
+document.addEventListener('click', function(e){
+  if(e.target.classList && e.target.classList.contains('form-overlay') && e.target.classList.contains('show')){
+    e.target.classList.remove('show');
+  }
+});
 
 function abrirFormGasto(){
   document.getElementById('gFecha').value = new Date().toISOString().slice(0,10);
@@ -1597,13 +1646,25 @@ function guardarPagoFiado(){
 
 function registrarPago(){
   const p = state.prestamoPersonal;
+  if(p.saldo<=0){ alert('El préstamo ya está saldado. Puedes renovar el ciclo.'); return; }
   const hoy = new Date();
-  if(hoy.getDay()===0){ if(!confirm('Hoy es domingo, normalmente no se cobra. ¿Registrar igualmente?')) return; }
+  document.getElementById('rpFecha').textContent = formatearFecha(hoy.toISOString().slice(0,10));
+  document.getElementById('rpMonto').textContent = euros(Math.min(p.cuotaDiaria, p.saldo));
+  document.getElementById('rpAvisoDomingo').style.display = hoy.getDay()===0 ? 'block' : 'none';
+  document.getElementById('rpSumarGasto').checked = false;
+  abrirOverlay('overlayRegistrarPago');
+}
+function confirmarRegistrarPago(){
+  const p = state.prestamoPersonal;
+  const hoy = new Date();
   const pago = Math.min(p.cuotaDiaria, p.saldo);
-  if(pago<=0){ alert('El préstamo ya está saldado. Puedes renovar el ciclo.'); return; }
+  const sumarGasto = document.getElementById('rpSumarGasto').checked;
   p.saldo = Math.max(0, p.saldo - pago);
   p.pagos.push({fecha: hoy.toISOString().slice(0,10), monto: pago});
-  guardarEnNube(); render();
+  if(sumarGasto){
+    state.gastosVariables.push({id:cid(), fecha: hoy.toISOString().slice(0,10), concepto:'Devolución préstamo Jerry', monto: pago, categoria:'Otro', metodo:'efectivo', usuario: usuarioActual()});
+  }
+  guardarEnNube(); cerrarOverlay('overlayRegistrarPago'); render();
 }
 function abrirAjusteSaldo(){
   document.getElementById('ajSaldo').value = state.prestamoPersonal.saldo;
