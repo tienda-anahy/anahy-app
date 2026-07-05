@@ -183,6 +183,15 @@
 </head>
 <body>
 
+<div id="lockScreen" style="display:none; position:fixed; inset:0; z-index:200; background:var(--verde); color:var(--crema); flex-direction:column; align-items:center; justify-content:center; gap:18px; font-family:'Segoe UI',sans-serif;">
+  <div style="font-size:2.4rem;">🍍</div>
+  <div style="font-family:Georgia,serif; font-size:1.3rem;">Anahy</div>
+  <input type="password" id="lockInput" inputmode="numeric" maxlength="4" placeholder="PIN"
+    style="width:140px; text-align:center; font-size:1.6rem; letter-spacing:8px; padding:10px; border-radius:10px; border:none;">
+  <button class="btn" style="width:180px;" onclick="verificarPin()">Desbloquear</button>
+  <div id="lockError" style="color:#F5A28D; font-size:0.85rem; display:none;">PIN incorrecto, inténtalo de nuevo.</div>
+</div>
+
 <div id="setupScreen">
   <h1>🍍 Configura tu panel Anahy</h1>
   <p>Para que los datos se guarden y se compartan entre todos los móviles, necesitas conectar una base de datos gratuita de Firebase. Son 5 minutos, una sola vez:</p>
@@ -215,7 +224,10 @@
       <h1>🍍 Anahy</h1>
       <div class="sub"><span class="sync-dot" id="syncDot"></span><span id="syncLabel">Sincronizado</span></div>
     </div>
-    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">🌙</button>
+    <div style="display:flex; gap:8px;">
+      <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">🌙</button>
+      <button class="theme-toggle" onclick="abrirAjustes()">⚙️</button>
+    </div>
   </div>
   <div class="fecha-nav">
     <button onclick="cambiarMes(-1)">‹</button>
@@ -268,6 +280,7 @@
     <div class="card">
       <h2>Gastos fijos <span class="badge">editable</span></h2>
       <div id="listaFijos"></div>
+      <button class="btn secundario" style="margin-top:10px;" onclick="abrirFormFijo()">+ Añadir gasto fijo</button>
       <div class="total-linea"><span>Total fijos (equiv. mensual)</span><span id="totalFijos">0€</span></div>
     </div>
     <div class="card">
@@ -276,6 +289,11 @@
       <div class="empty" id="emptyVariables" style="display:none;">Aún no hay gastos imprevistos este mes.</div>
       <div class="total-linea"><span>Total imprevistos del mes</span><span id="totalVariables">0€</span></div>
       <button class="btn" style="margin-top:14px;" onclick="abrirFormGasto()">+ Añadir gasto imprevisto</button>
+    </div>
+    <div class="card">
+      <h2>Gastos por categoría <span class="badge">este mes</span></h2>
+      <div id="graficoCategorias"></div>
+      <div class="empty" id="emptyCategorias" style="display:none;">Sin gastos imprevistos este mes todavía.</div>
     </div>
   </section>
 
@@ -340,6 +358,40 @@
 </nav>
 
 <!-- FORM OVERLAYS -->
+<div class="form-overlay" id="overlayAjustes">
+  <div class="form-sheet">
+    <h3>⚙️ Ajustes</h3>
+
+    <h3 style="font-size:0.95rem; margin-top:6px;">¿Quién eres tú en este móvil?</h3>
+    <select id="ajUsuario" onchange="guardarUsuarioActual(this.value)">
+      <option value="">Sin especificar</option>
+      <option value="Jerry">Jerry</option>
+      <option value="Mamá">Mamá</option>
+      <option value="Pareja">Pareja</option>
+    </select>
+    <p style="font-size:0.74rem; color:var(--tinta-suave); margin-top:6px;">Esto se guarda solo en este móvil, y se usa para saber quién apuntó cada ingreso o gasto.</p>
+
+    <h3 style="font-size:0.95rem; margin-top:20px;">Copia de seguridad</h3>
+    <button class="btn secundario" onclick="exportarDatos()">⬆ Exportar mis datos</button>
+    <label style="margin-top:10px;">Restaurar desde archivo</label>
+    <input type="file" id="ajImportarFile" accept="application/json">
+    <button class="btn secundario" style="margin-top:8px;" onclick="importarDatos()">⬇ Restaurar</button>
+
+    <h3 style="font-size:0.95rem; margin-top:20px;">Código PIN</h3>
+    <div id="ajPinSinConfigurar">
+      <label>Crear PIN de 4 dígitos</label>
+      <input type="password" id="ajNuevoPin" inputmode="numeric" maxlength="4" placeholder="0000">
+      <button class="btn secundario" style="margin-top:8px;" onclick="activarPin()">Activar PIN</button>
+    </div>
+    <div id="ajPinConfigurado" style="display:none;">
+      <p style="font-size:0.8rem; color:var(--tinta-suave);">El PIN ya está activado en este móvil.</p>
+      <button class="btn peligro" onclick="desactivarPin()">Desactivar PIN</button>
+    </div>
+
+    <button class="btn secundario" style="margin-top:18px;" onclick="cerrarOverlay('overlayAjustes')">Cerrar</button>
+  </div>
+</div>
+
 <div class="form-overlay" id="overlayGasto">
   <div class="form-sheet">
     <h3>Nuevo gasto imprevisto</h3>
@@ -354,6 +406,11 @@
       <option>Marketing / carteles</option>
       <option>Cursos / formación</option>
       <option>Otro</option>
+    </select>
+    <label>Pagado en</label>
+    <select id="gMetodo">
+      <option value="efectivo">Efectivo</option>
+      <option value="tarjeta">Tarjeta</option>
     </select>
     <div class="form-btns">
       <button class="btn secundario" onclick="cerrarOverlay('overlayGasto')">Cancelar</button>
@@ -391,6 +448,38 @@
   </div>
 </div>
 
+<div class="form-overlay" id="overlayDetalleFiado">
+  <div class="form-sheet">
+    <h3 id="dfNombre">Cliente</h3>
+    <div class="kpi-grid" style="margin-bottom:12px;">
+      <div class="kpi neg"><div class="label">Debe ahora</div><div class="valor" id="dfMonto">0€</div></div>
+      <div class="kpi info"><div class="label">Total pagado histórico</div><div class="valor" id="dfPagadoTotal">0€</div></div>
+    </div>
+    <p style="font-size:0.85rem; color:var(--tinta-suave);" id="dfContacto"></p>
+    <h3 style="font-size:0.95rem; margin-top:16px;">Historial</h3>
+    <div id="dfHistorial" style="max-height:180px; overflow-y:auto;"></div>
+    <div class="empty" id="dfHistorialVacio" style="display:none;">Aún no hay movimientos registrados.</div>
+    <div class="form-btns">
+      <button class="btn secundario" onclick="abrirAumentoDeuda()">+ Nueva compra fiada</button>
+      <button class="btn" onclick="abrirPagoFiadoDesdeDetalle()">💶 Registrar pago</button>
+    </div>
+    <button class="btn secundario" style="margin-top:8px;" onclick="cerrarOverlay('overlayDetalleFiado')">Cerrar</button>
+  </div>
+</div>
+
+<div class="form-overlay" id="overlayAumentoDeuda">
+  <div class="form-sheet">
+    <h3>Nueva compra fiada de <span id="adNombreCliente"></span></h3>
+    <label>Importe de la compra (€)</label><input type="number" step="0.01" id="adMonto" placeholder="0.00">
+    <label>Fecha</label><input type="date" id="adFecha">
+    <label>Nota (opcional)</label><input type="text" id="adNota" placeholder="Ej. compra de la semana">
+    <div class="form-btns">
+      <button class="btn secundario" onclick="cerrarOverlay('overlayAumentoDeuda')">Cancelar</button>
+      <button class="btn" onclick="guardarAumentoDeuda()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <div class="form-overlay" id="overlayPagoFiado">
   <div class="form-sheet">
     <h3>Registrar pago de <span id="pfNombreCliente"></span></h3>
@@ -402,9 +491,10 @@
       <option value="bizum">Bizum</option>
     </select>
     <label style="display:flex; align-items:center; gap:8px; margin-top:12px;">
-      <input type="checkbox" id="pfSumarIngreso" checked style="width:auto;">
-      Sumarlo también a los ingresos de hoy
+      <input type="checkbox" id="pfSumarIngreso" style="width:auto;">
+      Sumarlo TAMBIÉN a los ingresos de hoy
     </label>
+    <p style="font-size:0.74rem; color:var(--tinta-suave); margin-top:6px;">⚠️ Solo marca esto si este dinero <strong>no</strong> está ya incluido en el total que vas a apuntar en "Ingresos". Si al final del día metes la caja completa (que ya incluye lo que pagó este cliente), déjalo <strong>sin marcar</strong> para no contarlo dos veces.</p>
     <div class="form-btns">
       <button class="btn secundario" onclick="cerrarOverlay('overlayPagoFiado')">Cancelar</button>
       <button class="btn" onclick="guardarPagoFiado()">Guardar</button>
@@ -437,12 +527,37 @@
   </div>
 </div>
 
+<div class="form-overlay" id="overlayNuevoFijo">
+  <div class="form-sheet">
+    <h3>Nuevo gasto fijo</h3>
+    <label>Nombre</label><input type="text" id="nfNombre" placeholder="Ej. Mantenimiento cámara">
+    <label>Importe (€)</label><input type="number" step="0.01" id="nfMonto" placeholder="0.00">
+    <label>Frecuencia</label>
+    <select id="nfFreq">
+      <option value="mensual">Mensual</option>
+      <option value="bimensual">Cada 2 meses</option>
+      <option value="trimestral">Trimestral</option>
+    </select>
+    <label>Día de vencimiento (opcional, 1-31)</label>
+    <input type="number" min="1" max="31" id="nfDia" placeholder="Ej. 10">
+    <div class="form-btns">
+      <button class="btn secundario" onclick="cerrarOverlay('overlayNuevoFijo')">Cancelar</button>
+      <button class="btn" onclick="guardarNuevoFijo()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <div class="form-overlay" id="overlayFijoVenc">
   <div class="form-sheet">
-    <h3>Día de vencimiento</h3>
-    <p style="font-size:0.8rem; color:var(--tinta-suave);" id="fvNombreGasto"></p>
+    <h3>Detalles de <span id="fvNombreGasto"></span></h3>
     <label>Día del mes en que se paga (1-31, opcional)</label>
     <input type="number" min="1" max="31" id="fvDia" placeholder="Ej. 5">
+    <label>Forma de pago</label>
+    <select id="fvMetodo">
+      <option value="domiciliado">Domiciliado (banco)</option>
+      <option value="efectivo">Efectivo</option>
+      <option value="tarjeta">Tarjeta</option>
+    </select>
     <div class="form-btns">
       <button class="btn secundario" onclick="cerrarOverlay('overlayFijoVenc')">Cancelar</button>
       <button class="btn" onclick="guardarVencimientoFijo()">Guardar</button>
@@ -458,15 +573,7 @@
 // =====================================================================
 // PEGA AQUÍ TU CONFIGURACIÓN DE FIREBASE (ver instrucciones en pantalla)
 // =====================================================================
-const firebaseConfig = {
-  apiKey: "AIzaSyB5F0oZlm1J1jFKZ4XjlcCy9gCSRcP7JEk",
-  authDomain: "anahy-tienda.firebaseapp.com",
-  projectId: "anahy-tienda",
-  storageBucket: "anahy-tienda.firebasestorage.app",
-  messagingSenderId: "82113395733",
-  appId: "1:82113395733:web:d3a153fba376a3dccda21c",
-  measurementId: "G-NXY4WG2E9Q"
-};
+const firebaseConfig = "CONFIGURA_AQUI";
 // =====================================================================
 
 let db = null;
@@ -520,6 +627,28 @@ function euros(n){ return (Math.round((n||0)*100)/100).toLocaleString('es-ES',{m
 
 // ---------- arranque ----------
 window.addEventListener('DOMContentLoaded', () => {
+  const pinGuardado = localStorage.getItem('anahy-pin');
+  if(pinGuardado){
+    document.getElementById('lockScreen').style.display = 'flex';
+    document.getElementById('lockInput').focus();
+  } else {
+    iniciarApp();
+  }
+});
+
+function verificarPin(){
+  const intento = document.getElementById('lockInput').value;
+  const pinGuardado = localStorage.getItem('anahy-pin');
+  if(intento === pinGuardado){
+    document.getElementById('lockScreen').style.display = 'none';
+    iniciarApp();
+  } else {
+    document.getElementById('lockError').style.display = 'block';
+    document.getElementById('lockInput').value = '';
+  }
+}
+
+function iniciarApp(){
   if(!firebaseConfig || firebaseConfig === "CONFIGURA_AQUI"){
     document.getElementById('setupScreen').style.display = 'block';
     document.getElementById('appRoot').style.display = 'none';
@@ -554,7 +683,7 @@ window.addEventListener('DOMContentLoaded', () => {
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('sw.js').catch(()=>{});
   }
-});
+}
 
 function setSync(ok){
   const dot = document.getElementById('syncDot');
@@ -663,14 +792,14 @@ function renderResumen(){
 
   // avisos
   const avisos = [];
-  if(ingresos===0) avisos.push('📝 Aún no has apuntado ingresos este mes.');
-  if(stockBajo.length>0) avisos.push('📦 '+stockBajo.length+' producto(s) con stock bajo: '+stockBajo.map(s=>s.nombre).join(', '));
+  if(ingresos===0) avisos.push({texto:'📝 Aún no has apuntado ingresos este mes.', tab:'ingresos'});
+  if(stockBajo.length>0) avisos.push({texto:'📦 '+stockBajo.length+' producto(s) con stock bajo: '+stockBajo.map(s=>s.nombre).join(', '), tab:'stock'});
   const fiadoAlto = state.fiados.filter(f=>f.monto>1000);
-  fiadoAlto.forEach(f=> avisos.push('🔴 '+f.cliente+' debe más de 1.000€ ('+euros(f.monto)+').'));
+  fiadoAlto.forEach(f=> avisos.push({texto:'🔴 '+f.cliente+' debe más de 1.000€ ('+euros(f.monto)+').', tab:'fiados'}));
   const cardAvisos = document.getElementById('cardAvisos');
   if(avisos.length){
     cardAvisos.style.display='block';
-    cardAvisos.innerHTML = '<h2>Avisos</h2>' + avisos.map(a=>`<div class="aviso">${a}</div>`).join('');
+    cardAvisos.innerHTML = '<h2>Avisos</h2>' + avisos.map(a=>`<div class="aviso" style="cursor:pointer;" onclick="cambiarTab('${a.tab}')">${a.texto}</div>`).join('');
   } else {
     cardAvisos.style.display='none';
   }
@@ -725,11 +854,14 @@ function renderGastos(){
   const lf = document.getElementById('listaFijos');
   lf.innerHTML = state.gastosFijos.map(g=>`
     <div class="fila">
-      <div class="nombre">${g.nombre}<small>${g.freq}${g.freq!=='mensual' ? ' · ' + euros(equivalenteMensual(g)) + '/mes equiv.' : ''}${g.diaVenc? ' · vence día '+g.diaVenc:''}</small></div>
+      <div class="nombre">${g.nombre}<small>${g.freq}${g.freq!=='mensual' ? ' · ' + euros(equivalenteMensual(g)) + '/mes equiv.' : ''}${g.diaVenc? ' · vence día '+g.diaVenc:''}${g.metodo && g.metodo!=='domiciliado' ? ' · '+(g.metodo==='efectivo'?'Efectivo':'Tarjeta') : ''}</small></div>
       <div class="monto">
         <input type="number" step="0.01" value="${g.monto}" style="width:76px;padding:5px;border:1px solid var(--borde);border-radius:6px;font-family:'Segoe UI',sans-serif;background:var(--crema);color:var(--tinta);" onchange="editarFijo('${g.id}', this.value)">
       </div>
-      <div class="acciones"><button class="icon-btn" onclick="abrirVencFijo('${g.id}')">📅</button></div>
+      <div class="acciones">
+        <button class="icon-btn" onclick="abrirVencFijo('${g.id}')">📅</button>
+        <button class="icon-btn" onclick="borrarFijo('${g.id}')">🗑️</button>
+      </div>
     </div>
   `).join('');
   document.getElementById('totalFijos').textContent = euros(totalFijosMensual());
@@ -739,12 +871,109 @@ function renderGastos(){
   document.getElementById('emptyVariables').style.display = vars.length? 'none':'block';
   lv.innerHTML = vars.map(g=>`
     <div class="fila">
-      <div class="nombre">${g.concepto}<small>${g.fecha} · ${g.categoria}</small></div>
+      <div class="nombre">${g.concepto}<small>${g.fecha} · ${g.categoria}${g.metodo? ' · '+(g.metodo==='efectivo'?'Efectivo':'Tarjeta'):''}${g.usuario? ' · '+g.usuario:''}</small></div>
       <div class="monto rojo">${euros(g.monto)}</div>
       <div class="acciones"><button class="icon-btn" onclick="borrarVariable('${g.id}')">🗑️</button></div>
     </div>
   `).join('');
   document.getElementById('totalVariables').textContent = euros(totalVariablesMes());
+
+  const porCategoria = {};
+  vars.forEach(g => { porCategoria[g.categoria] = (porCategoria[g.categoria]||0) + Number(g.monto); });
+  const entradas = Object.entries(porCategoria).sort((a,b)=>b[1]-a[1]);
+  const maxCat = Math.max(1, ...entradas.map(e=>e[1]));
+  document.getElementById('emptyCategorias').style.display = entradas.length? 'none':'block';
+  document.getElementById('graficoCategorias').innerHTML = entradas.map(([cat, val])=>`
+    <div style="margin-bottom:10px;">
+      <div style="display:flex; justify-content:space-between; font-family:'Segoe UI',sans-serif; font-size:0.82rem; margin-bottom:3px;">
+        <span>${cat}</span><span style="font-weight:700;">${euros(val)}</span>
+      </div>
+      <div style="background:var(--crema-osc); border-radius:6px; height:9px; overflow:hidden;">
+        <div style="background:var(--papaya); height:100%; width:${(val/maxCat)*100}%; border-radius:6px;"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function borrarFijo(id){
+  if(confirm('¿Eliminar este gasto fijo? Ya no se contará cada mes.')){
+    state.gastosFijos = state.gastosFijos.filter(x=>x.id!==id);
+    guardarEnNube(); render();
+  }
+}
+function abrirFormFijo(){
+  document.getElementById('nfNombre').value='';
+  document.getElementById('nfMonto').value='';
+  document.getElementById('nfFreq').value='mensual';
+  document.getElementById('nfDia').value='';
+  abrirOverlay('overlayNuevoFijo');
+}
+function guardarNuevoFijo(){
+  const nombre = document.getElementById('nfNombre').value.trim();
+  const monto = Number(document.getElementById('nfMonto').value);
+  const freq = document.getElementById('nfFreq').value;
+  const diaVenc = Number(document.getElementById('nfDia').value) || null;
+  if(!nombre || !monto){ alert('Indica nombre e importe.'); return; }
+  state.gastosFijos.push({id:cid(), nombre, monto, freq, diaVenc});
+  guardarEnNube(); cerrarOverlay('overlayNuevoFijo'); render();
+}
+function abrirAjustes(){
+  document.getElementById('ajUsuario').value = localStorage.getItem('anahy-usuario') || '';
+  const pinGuardado = localStorage.getItem('anahy-pin');
+  document.getElementById('ajPinSinConfigurar').style.display = pinGuardado? 'none':'block';
+  document.getElementById('ajPinConfigurado').style.display = pinGuardado? 'block':'none';
+  abrirOverlay('overlayAjustes');
+}
+function guardarUsuarioActual(valor){
+  localStorage.setItem('anahy-usuario', valor);
+}
+function usuarioActual(){
+  return localStorage.getItem('anahy-usuario') || '';
+}
+
+function activarPin(){
+  const pin = document.getElementById('ajNuevoPin').value;
+  if(!/^\d{4}$/.test(pin)){ alert('El PIN debe tener exactamente 4 dígitos.'); return; }
+  localStorage.setItem('anahy-pin', pin);
+  alert('PIN activado. La próxima vez que se abra la app en este móvil, lo pedirá.');
+  abrirAjustes();
+}
+function desactivarPin(){
+  if(confirm('¿Quitar el PIN de este móvil?')){
+    localStorage.removeItem('anahy-pin');
+    abrirAjustes();
+  }
+}
+
+function exportarDatos(){
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'anahy-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function importarDatos(){
+  const input = document.getElementById('ajImportarFile');
+  if(!input.files || !input.files[0]){ alert('Elige primero un archivo de copia de seguridad.'); return; }
+  if(!confirm('Esto sustituirá TODOS los datos actuales por los del archivo. ¿Seguro?')) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try{
+      const nuevo = JSON.parse(e.target.result);
+      state = nuevo;
+      guardarEnNube();
+      cerrarOverlay('overlayAjustes');
+      render();
+      alert('Datos restaurados correctamente.');
+    } catch(err){
+      alert('El archivo no es una copia de seguridad válida.');
+    }
+  };
+  reader.readAsText(input.files[0]);
 }
 
 function editarFijo(id, valor){
@@ -757,12 +986,14 @@ function abrirVencFijo(id){
   const g = state.gastosFijos.find(x=>x.id===id);
   document.getElementById('fvNombreGasto').textContent = g.nombre;
   document.getElementById('fvDia').value = g.diaVenc || '';
+  document.getElementById('fvMetodo').value = g.metodo || 'domiciliado';
   abrirOverlay('overlayFijoVenc');
 }
 function guardarVencimientoFijo(){
   const g = state.gastosFijos.find(x=>x.id===fijoVencActivoId);
   const dia = Number(document.getElementById('fvDia').value) || null;
-  if(g){ g.diaVenc = dia; guardarEnNube(); }
+  const metodo = document.getElementById('fvMetodo').value;
+  if(g){ g.diaVenc = dia; g.metodo = metodo; guardarEnNube(); }
   cerrarOverlay('overlayFijoVenc'); render();
 }
 
@@ -777,7 +1008,7 @@ function renderIngresos(){
       d.bizum? 'Bizum '+euros(d.bizum):null
     ].filter(Boolean).join(' · ') : '';
     return `<div class="fila">
-      <div class="nombre">${x.fecha}<small>${partes}${x.nota? (partes?' — ':'')+x.nota:''}</small></div>
+      <div class="nombre">${x.fecha}<small>${partes}${x.nota? (partes?' — ':'')+x.nota:''}${x.usuario? ' · '+x.usuario:''}</small></div>
       <div class="monto verde">${euros(x.monto)}</div>
       <div class="acciones"><button class="icon-btn" onclick="borrarIngreso('${x.id}')">🗑️</button></div>
     </div>`;
@@ -793,7 +1024,7 @@ function renderFiados(){
     lf.innerHTML = ordenado.map(f=>{
       const sem = f.monto>1000?'rojo':(f.monto>300?'amarillo':'verde');
       return `<div class="fila">
-        <div class="nombre"><span class="semaforo ${sem}"></span>${f.cliente}${f.historial && f.historial.length ? '<small>Último pago: '+f.historial[f.historial.length-1].fecha+' · '+euros(f.historial[f.historial.length-1].monto)+'</small>' : '<small>Sin pagos registrados</small>'}</div>
+        <div class="nombre" onclick="abrirDetalleFiado('${f.id}')" style="cursor:pointer;"><span class="semaforo ${sem}"></span>${f.cliente}${f.historial && f.historial.length ? '<small>Último pago: '+f.historial[f.historial.length-1].fecha+' · '+euros(f.historial[f.historial.length-1].monto)+'</small>' : '<small>Toca para ver detalle</small>'}</div>
         <div class="monto rojo">${euros(f.monto)}</div>
         <div class="acciones">
           <button class="icon-btn" onclick="abrirPagoFiado('${f.id}')">💶</button>
@@ -837,6 +1068,7 @@ function abrirFormGasto(){
   document.getElementById('gFecha').value = new Date().toISOString().slice(0,10);
   document.getElementById('gConcepto').value='';
   document.getElementById('gMonto').value='';
+  document.getElementById('gMetodo').value='efectivo';
   abrirOverlay('overlayGasto');
 }
 function guardarGasto(){
@@ -844,8 +1076,9 @@ function guardarGasto(){
   const concepto = document.getElementById('gConcepto').value.trim();
   const monto = Number(document.getElementById('gMonto').value);
   const categoria = document.getElementById('gCategoria').value;
+  const metodo = document.getElementById('gMetodo').value;
   if(!fecha || !concepto || !monto){ alert('Rellena fecha, concepto e importe.'); return; }
-  state.gastosVariables.push({id:cid(), fecha, concepto, monto, categoria});
+  state.gastosVariables.push({id:cid(), fecha, concepto, monto, categoria, metodo, usuario: usuarioActual()});
   guardarEnNube(); cerrarOverlay('overlayGasto'); render();
 }
 function borrarVariable(id){ state.gastosVariables = state.gastosVariables.filter(x=>x.id!==id); guardarEnNube(); render(); }
@@ -866,7 +1099,7 @@ function guardarIngreso(){
   const nota = document.getElementById('iNota').value.trim();
   const monto = efectivo + tarjeta + bizum;
   if(!fecha || !monto){ alert('Rellena la fecha y al menos un importe.'); return; }
-  state.ingresos.push({id:cid(), fecha, monto, nota, desglose:{efectivo, tarjeta, bizum}});
+  state.ingresos.push({id:cid(), fecha, monto, nota, desglose:{efectivo, tarjeta, bizum}, usuario: usuarioActual()});
   guardarEnNube(); cerrarOverlay('overlayIngreso'); render();
 }
 function borrarIngreso(id){ state.ingresos = state.ingresos.filter(x=>x.id!==id); guardarEnNube(); render(); }
@@ -894,13 +1127,54 @@ function borrarFiado(id){
   }
 }
 let fiadoActivoId = null;
+function abrirDetalleFiado(id){
+  fiadoActivoId = id;
+  const f = state.fiados.find(x=>x.id===id);
+  document.getElementById('dfNombre').textContent = f.cliente;
+  document.getElementById('dfMonto').textContent = euros(f.monto);
+  const totalPagado = (f.historial||[]).reduce((s,h)=>s+Number(h.monto||0),0);
+  document.getElementById('dfPagadoTotal').textContent = euros(totalPagado);
+  const contactoPartes = [f.telefono, f.nota].filter(Boolean);
+  document.getElementById('dfContacto').textContent = contactoPartes.length ? contactoPartes.join(' · ') : 'Sin teléfono ni nota guardados.';
+  const hist = [...(f.historial||[])].sort((a,b)=> b.fecha.localeCompare(a.fecha));
+  document.getElementById('dfHistorialVacio').style.display = hist.length? 'none':'block';
+  document.getElementById('dfHistorial').innerHTML = hist.map(h=>`
+    <div class="fila"><div class="nombre">${h.fecha}${h.tipo==='deuda'?'<small>Nueva compra fiada'+(h.nota?': '+h.nota:'')+'</small>':'<small>Pago recibido</small>'}</div><div class="monto ${h.tipo==='deuda'?'rojo':'verde'}">${h.tipo==='deuda'?'+':'-'}${euros(h.monto)}</div></div>
+  `).join('');
+  abrirOverlay('overlayDetalleFiado');
+}
+function abrirAumentoDeuda(){
+  const f = state.fiados.find(x=>x.id===fiadoActivoId);
+  document.getElementById('adNombreCliente').textContent = f.cliente;
+  document.getElementById('adMonto').value = '';
+  document.getElementById('adFecha').value = new Date().toISOString().slice(0,10);
+  document.getElementById('adNota').value = '';
+  abrirOverlay('overlayAumentoDeuda');
+}
+function guardarAumentoDeuda(){
+  const monto = Number(document.getElementById('adMonto').value);
+  const fecha = document.getElementById('adFecha').value;
+  const nota = document.getElementById('adNota').value.trim();
+  if(!monto || !fecha){ alert('Indica importe y fecha.'); return; }
+  const f = state.fiados.find(x=>x.id===fiadoActivoId);
+  if(f){
+    f.monto = Number(f.monto) + monto;
+    f.historial = f.historial || [];
+    f.historial.push({fecha, monto, tipo:'deuda', nota});
+  }
+  guardarEnNube(); cerrarOverlay('overlayAumentoDeuda'); cerrarOverlay('overlayDetalleFiado'); render();
+}
+function abrirPagoFiadoDesdeDetalle(){
+  cerrarOverlay('overlayDetalleFiado');
+  abrirPagoFiado(fiadoActivoId);
+}
 function abrirPagoFiado(id){
   fiadoActivoId = id;
   const f = state.fiados.find(x=>x.id===id);
   document.getElementById('pfNombreCliente').textContent = f.cliente;
   document.getElementById('pfMonto').value = '';
   document.getElementById('pfMetodo').value = 'efectivo';
-  document.getElementById('pfSumarIngreso').checked = true;
+  document.getElementById('pfSumarIngreso').checked = false;
   abrirOverlay('overlayPagoFiado');
 }
 function guardarPagoFiado(){
@@ -912,7 +1186,7 @@ function guardarPagoFiado(){
   if(f){
     f.monto = Math.max(0, f.monto - monto);
     f.historial = f.historial || [];
-    f.historial.push({fecha: new Date().toISOString().slice(0,10), monto});
+    f.historial.push({fecha: new Date().toISOString().slice(0,10), monto, tipo:'pago'});
     if(sumarIngreso){
       const desglose = {efectivo:0, tarjeta:0, bizum:0};
       desglose[metodo] = monto;
