@@ -183,12 +183,25 @@
 </head>
 <body>
 
-<div id="lockScreen" style="display:none; position:fixed; inset:0; z-index:200; background:var(--verde); color:var(--crema); flex-direction:column; align-items:center; justify-content:center; gap:18px; font-family:'Segoe UI',sans-serif;">
+<div id="lockScreen" style="display:none; position:fixed; inset:0; z-index:200; background:var(--verde); color:var(--crema); flex-direction:column; align-items:center; justify-content:center; gap:16px; font-family:'Segoe UI',sans-serif; padding:20px;">
   <div style="font-size:2.4rem;">🍍</div>
   <div style="font-family:Georgia,serif; font-size:1.3rem;">Anahy</div>
-  <input type="password" id="lockInput" inputmode="numeric" maxlength="4" placeholder="PIN"
-    style="width:140px; text-align:center; font-size:1.6rem; letter-spacing:8px; padding:10px; border-radius:10px; border:none;">
-  <button class="btn" style="width:180px;" onclick="verificarPin()">Desbloquear</button>
+
+  <div id="loginElegir" style="display:flex; flex-direction:column; gap:10px; width:220px;">
+    <div style="font-size:0.85rem; opacity:0.85; text-align:center;">¿Quién eres?</div>
+    <button class="btn" onclick="elegirIdentidad('Jerry')" id="btnIdJerry">Jerry</button>
+    <button class="btn" onclick="elegirIdentidad('Mamá')" id="btnIdMama">Mamá</button>
+    <button class="btn" onclick="elegirIdentidad('Gaby')" id="btnIdGaby">Gaby</button>
+  </div>
+
+  <div id="loginPin" style="display:none; flex-direction:column; align-items:center; gap:14px; width:220px;">
+    <div id="loginPinTitulo" style="font-size:0.88rem; text-align:center;"></div>
+    <input type="password" id="lockInput" inputmode="numeric" maxlength="4" placeholder="PIN"
+      style="width:140px; text-align:center; font-size:1.6rem; letter-spacing:8px; padding:10px; border-radius:10px; border:none;">
+    <button class="btn" style="width:180px;" onclick="confirmarPin()" id="loginPinBoton">Continuar</button>
+    <button class="btn secundario" style="width:180px; border-color:var(--crema); color:var(--crema);" onclick="volverAElegir()">Cambiar de persona</button>
+  </div>
+
   <div id="lockError" style="color:#F5A28D; font-size:0.85rem; display:none;">PIN incorrecto, inténtalo de nuevo.</div>
 </div>
 
@@ -312,6 +325,8 @@
   <section class="tab-panel" id="tab-fiados">
     <div class="card">
       <h2>Cuentas pendientes (fiado)</h2>
+      <input type="text" id="buscarFiado" placeholder="🔎 Buscar cliente..." oninput="renderFiados()"
+        style="width:100%; padding:10px; border:1px solid var(--borde); border-radius:9px; font-family:'Segoe UI',sans-serif; font-size:0.9rem; background:var(--crema); color:var(--tinta); margin-bottom:10px;">
       <div id="listaFiados"></div>
       <div class="total-linea"><span>Total pendiente</span><span id="totalFiados">0€</span></div>
       <button class="btn" style="margin-top:14px;" onclick="abrirFormFiado()">+ Añadir cliente</button>
@@ -339,10 +354,16 @@
   <!-- STOCK -->
   <section class="tab-panel" id="tab-stock">
     <div class="card">
-      <h2>Stock</h2>
+      <h2>Stock crítico <span class="badge">solo lo importante</span></h2>
       <div id="listaStock"></div>
       <div class="empty" id="emptyStock" style="display:none;">Aún no hay productos en el stock.</div>
       <button class="btn" style="margin-top:14px;" onclick="abrirFormStock()">+ Añadir producto</button>
+    </div>
+    <div class="card">
+      <h2>Caducidades</h2>
+      <div id="listaCaducidades"></div>
+      <div class="empty" id="emptyCaducidades" style="display:none;">Aún no hay productos con caducidad apuntados.</div>
+      <button class="btn" style="margin-top:14px;" onclick="abrirFormCaducidad()">+ Añadir producto con caducidad</button>
     </div>
   </section>
 
@@ -362,31 +383,16 @@
   <div class="form-sheet">
     <h3>⚙️ Ajustes</h3>
 
-    <h3 style="font-size:0.95rem; margin-top:6px;">¿Quién eres tú en este móvil?</h3>
-    <select id="ajUsuario" onchange="guardarUsuarioActual(this.value)">
-      <option value="">Sin especificar</option>
-      <option value="Jerry">Jerry</option>
-      <option value="Mamá">Mamá</option>
-      <option value="Pareja">Pareja</option>
-    </select>
-    <p style="font-size:0.74rem; color:var(--tinta-suave); margin-top:6px;">Esto se guarda solo en este móvil, y se usa para saber quién apuntó cada ingreso o gasto.</p>
+    <h3 style="font-size:0.95rem; margin-top:6px;">Tu identidad en este móvil</h3>
+    <p style="font-size:0.9rem;">👤 <strong id="ajIdentidadActual">—</strong></p>
+    <button class="btn peligro" onclick="cerrarSesion()">Cambiar de persona / cerrar sesión</button>
+    <p style="font-size:0.74rem; color:var(--tinta-suave); margin-top:6px;">Esto vuelve a pedir elegir quién eres y el PIN la próxima vez que se abra la app en este móvil.</p>
 
     <h3 style="font-size:0.95rem; margin-top:20px;">Copia de seguridad</h3>
     <button class="btn secundario" onclick="exportarDatos()">⬆ Exportar mis datos</button>
     <label style="margin-top:10px;">Restaurar desde archivo</label>
     <input type="file" id="ajImportarFile" accept="application/json">
     <button class="btn secundario" style="margin-top:8px;" onclick="importarDatos()">⬇ Restaurar</button>
-
-    <h3 style="font-size:0.95rem; margin-top:20px;">Código PIN</h3>
-    <div id="ajPinSinConfigurar">
-      <label>Crear PIN de 4 dígitos</label>
-      <input type="password" id="ajNuevoPin" inputmode="numeric" maxlength="4" placeholder="0000">
-      <button class="btn secundario" style="margin-top:8px;" onclick="activarPin()">Activar PIN</button>
-    </div>
-    <div id="ajPinConfigurado" style="display:none;">
-      <p style="font-size:0.8rem; color:var(--tinta-suave);">El PIN ya está activado en este móvil.</p>
-      <button class="btn peligro" onclick="desactivarPin()">Desactivar PIN</button>
-    </div>
 
     <button class="btn secundario" style="margin-top:18px;" onclick="cerrarOverlay('overlayAjustes')">Cerrar</button>
   </div>
@@ -513,6 +519,19 @@
   </div>
 </div>
 
+<div class="form-overlay" id="overlayCaducidad">
+  <div class="form-sheet">
+    <h3>Producto con caducidad</h3>
+    <label>Nombre</label><input type="text" id="cdNombre" placeholder="Ej. Leche Pascual">
+    <label>Fecha de caducidad</label><input type="date" id="cdFecha">
+    <label>Nota (opcional)</label><input type="text" id="cdNota" placeholder="Ej. lote de la nevera 2">
+    <div class="form-btns">
+      <button class="btn secundario" onclick="cerrarOverlay('overlayCaducidad')">Cancelar</button>
+      <button class="btn" onclick="guardarCaducidad()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <div class="form-overlay" id="overlayStock">
   <div class="form-sheet">
     <h3>Producto de stock</h3>
@@ -626,48 +645,143 @@ function defaultState(){
       {id:cid(), cliente:'dulce brasilena', monto:90.61, historial:[]}
     ],
     prestamoPersonal: { montoInicial:500, saldo:270, cuotaDiaria:30, pagos:[] },
-    stock: []
+    stock: [],
+    caducidades: [],
+    usuarios: {}
   };
 }
 
 function cid(){ return 'id' + Math.random().toString(36).slice(2,10); }
 function euros(n){ return (Math.round((n||0)*100)/100).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2}) + '€'; }
 
-// ---------- arranque ----------
+// ---------- arranque y login por identidad ----------
+let identidadElegida = null;
+let pinTemporal = null;
+let modoLogin = null; // 'crear1' | 'crear2' | 'entrar'
+let usuariosRemoto = {};
+
 window.addEventListener('DOMContentLoaded', () => {
-  const pinGuardado = localStorage.getItem('anahy-pin');
-  if(pinGuardado){
-    document.getElementById('lockScreen').style.display = 'flex';
-    document.getElementById('lockInput').focus();
-  } else {
-    iniciarApp();
-  }
-});
-
-function verificarPin(){
-  const intento = document.getElementById('lockInput').value;
-  const pinGuardado = localStorage.getItem('anahy-pin');
-  if(intento === pinGuardado){
-    document.getElementById('lockScreen').style.display = 'none';
-    iniciarApp();
-  } else {
-    document.getElementById('lockError').style.display = 'block';
-    document.getElementById('lockInput').value = '';
-  }
-}
-
-function iniciarApp(){
   if(!firebaseConfig || firebaseConfig === "CONFIGURA_AQUI"){
     document.getElementById('setupScreen').style.display = 'block';
     document.getElementById('appRoot').style.display = 'none';
     return;
   }
-  document.getElementById('setupScreen').style.display = 'none';
-  document.getElementById('appRoot').style.display = 'block';
-
-  const app = firebase.initializeApp(firebaseConfig);
+  firebase.initializeApp(firebaseConfig);
   db = firebase.firestore();
   docRef = db.collection('anahy').doc('estado');
+
+  const identidadGuardada = localStorage.getItem('anahy-identidad');
+
+  docRef.get().then((snap) => {
+    const data = snap.exists && snap.data().json ? JSON.parse(snap.data().json) : defaultState();
+    usuariosRemoto = data.usuarios || {};
+
+    if(identidadGuardada){
+      // este móvil ya está vinculado a una persona: solo pide su PIN
+      identidadElegida = identidadGuardada;
+      modoLogin = 'entrar';
+      document.getElementById('lockScreen').style.display = 'flex';
+      document.getElementById('loginElegir').style.display = 'none';
+      document.getElementById('loginPin').style.display = 'flex';
+      document.getElementById('loginPinTitulo').textContent = 'Introduce el PIN de ' + identidadGuardada;
+      document.getElementById('loginPinBoton').textContent = 'Entrar';
+      document.getElementById('lockInput').focus();
+    } else {
+      // primera vez en este móvil: elegir quién eres
+      ['Jerry','Mamá','Gaby'].forEach(n => {
+        const btn = document.getElementById('btnId'+n.replace('á','a'));
+        if(usuariosRemoto[n]) btn.textContent = n + ' ✓';
+      });
+      document.getElementById('lockScreen').style.display = 'flex';
+    }
+  }).catch(() => {
+    // sin conexión: si este móvil ya tenía identidad, la dejamos pasar en modo local
+    if(identidadGuardada){
+      iniciarApp();
+    } else {
+      alert('No se pudo conectar. Revisa tu conexión e inténtalo de nuevo.');
+    }
+  });
+});
+
+function elegirIdentidad(nombre){
+  identidadElegida = nombre;
+  document.getElementById('loginElegir').style.display = 'none';
+  document.getElementById('loginPin').style.display = 'flex';
+  document.getElementById('lockInput').value = '';
+  document.getElementById('lockError').style.display = 'none';
+  if(usuariosRemoto[nombre]){
+    modoLogin = 'entrar';
+    document.getElementById('loginPinTitulo').textContent = 'Introduce el PIN de ' + nombre;
+    document.getElementById('loginPinBoton').textContent = 'Entrar';
+  } else {
+    modoLogin = 'crear1';
+    document.getElementById('loginPinTitulo').textContent = 'Crea un PIN de 4 dígitos para ' + nombre;
+    document.getElementById('loginPinBoton').textContent = 'Continuar';
+  }
+}
+function volverAElegir(){
+  document.getElementById('loginPin').style.display = 'none';
+  document.getElementById('loginElegir').style.display = 'flex';
+  document.getElementById('lockError').style.display = 'none';
+  modoLogin = null; identidadElegida = null; pinTemporal = null;
+}
+
+function confirmarPin(){
+  const valor = document.getElementById('lockInput').value;
+  if(!/^\d{4}$/.test(valor)){ alert('El PIN debe tener 4 dígitos.'); return; }
+
+  if(modoLogin === 'entrar'){
+    if(valor === usuariosRemoto[identidadElegida]){
+      localStorage.setItem('anahy-identidad', identidadElegida);
+      document.getElementById('lockScreen').style.display = 'none';
+      iniciarApp();
+    } else {
+      document.getElementById('lockError').style.display = 'block';
+      document.getElementById('lockInput').value = '';
+    }
+    return;
+  }
+  if(modoLogin === 'crear1'){
+    pinTemporal = valor;
+    modoLogin = 'crear2';
+    document.getElementById('loginPinTitulo').textContent = 'Repite el PIN para confirmarlo';
+    document.getElementById('lockInput').value = '';
+    return;
+  }
+  if(modoLogin === 'crear2'){
+    if(valor !== pinTemporal){
+      document.getElementById('lockError').textContent = 'No coincide, vuelve a intentarlo desde el principio.';
+      document.getElementById('lockError').style.display = 'block';
+      modoLogin = 'crear1';
+      pinTemporal = null;
+      document.getElementById('lockInput').value = '';
+      document.getElementById('loginPinTitulo').textContent = 'Crea un PIN de 4 dígitos para ' + identidadElegida;
+      return;
+    }
+    docRef.get().then((snap) => {
+      const fullState = snap.exists && snap.data().json ? JSON.parse(snap.data().json) : defaultState();
+      if(!fullState.usuarios) fullState.usuarios = {};
+      fullState.usuarios[identidadElegida] = valor;
+      return docRef.set({ json: JSON.stringify(fullState), actualizado: new Date().toISOString() });
+    }).then(() => {
+      localStorage.setItem('anahy-identidad', identidadElegida);
+      document.getElementById('lockScreen').style.display = 'none';
+      iniciarApp();
+    });
+  }
+}
+
+function cerrarSesion(){
+  if(confirm('¿Cambiar de persona en este móvil? La próxima vez que se abra pedirá elegir quién eres.')){
+    localStorage.removeItem('anahy-identidad');
+    location.reload();
+  }
+}
+
+function iniciarApp(){
+  document.getElementById('setupScreen').style.display = 'none';
+  document.getElementById('appRoot').style.display = 'block';
 
   aplicarTemaGuardado();
 
@@ -804,6 +918,11 @@ function renderResumen(){
   if(stockBajo.length>0) avisos.push({texto:'📦 '+stockBajo.length+' producto(s) con stock bajo: '+stockBajo.map(s=>s.nombre).join(', '), tab:'stock'});
   const fiadoAlto = state.fiados.filter(f=>f.monto>1000);
   fiadoAlto.forEach(f=> avisos.push({texto:'🔴 '+f.cliente+' debe más de 1.000€ ('+euros(f.monto)+').', tab:'fiados'}));
+  const hoyCad = new Date(); hoyCad.setHours(0,0,0,0);
+  (state.caducidades||[]).forEach(c=>{
+    const dias = Math.round((new Date(c.fecha+'T00:00:00')-hoyCad)/(1000*60*60*24));
+    if(dias<=3) avisos.push({texto:(dias<0?'⏰ '+c.nombre+' caducó hace '+Math.abs(dias)+' día(s).':'⏰ '+c.nombre+' caduca '+(dias===0?'hoy':'en '+dias+' día(s)')+'.'), tab:'stock'});
+  });
   const cardAvisos = document.getElementById('cardAvisos');
   if(avisos.length){
     cardAvisos.style.display='block';
@@ -926,31 +1045,11 @@ function guardarNuevoFijo(){
   guardarEnNube(); cerrarOverlay('overlayNuevoFijo'); render();
 }
 function abrirAjustes(){
-  document.getElementById('ajUsuario').value = localStorage.getItem('anahy-usuario') || '';
-  const pinGuardado = localStorage.getItem('anahy-pin');
-  document.getElementById('ajPinSinConfigurar').style.display = pinGuardado? 'none':'block';
-  document.getElementById('ajPinConfigurado').style.display = pinGuardado? 'block':'none';
+  document.getElementById('ajIdentidadActual').textContent = usuarioActual() || 'Sin identificar';
   abrirOverlay('overlayAjustes');
 }
-function guardarUsuarioActual(valor){
-  localStorage.setItem('anahy-usuario', valor);
-}
 function usuarioActual(){
-  return localStorage.getItem('anahy-usuario') || '';
-}
-
-function activarPin(){
-  const pin = document.getElementById('ajNuevoPin').value;
-  if(!/^\d{4}$/.test(pin)){ alert('El PIN debe tener exactamente 4 dígitos.'); return; }
-  localStorage.setItem('anahy-pin', pin);
-  alert('PIN activado. La próxima vez que se abra la app en este móvil, lo pedirá.');
-  abrirAjustes();
-}
-function desactivarPin(){
-  if(confirm('¿Quitar el PIN de este móvil?')){
-    localStorage.removeItem('anahy-pin');
-    abrirAjustes();
-  }
+  return localStorage.getItem('anahy-identidad') || '';
 }
 
 function exportarDatos(){
@@ -1025,9 +1124,11 @@ function renderIngresos(){
 }
 
 function renderFiados(){
-  const ordenado = [...state.fiados].sort((a,b)=>b.monto-a.monto);
+  const q = (document.getElementById('buscarFiado').value || '').toLowerCase().trim();
+  const filtrados = q ? state.fiados.filter(f => f.cliente.toLowerCase().includes(q)) : state.fiados;
+  const ordenado = [...filtrados].sort((a,b)=>b.monto-a.monto);
   const lf = document.getElementById('listaFiados');
-  if(!ordenado.length){ lf.innerHTML = '<div class="empty">No hay clientes con fiado registrados.</div>'; }
+  if(!ordenado.length){ lf.innerHTML = '<div class="empty">'+(q? 'Ningún cliente coincide con "'+q+'".' : 'No hay clientes con fiado registrados.')+'</div>'; }
   else{
     lf.innerHTML = ordenado.map(f=>{
       const sem = f.monto>1000?'rojo':(f.monto>300?'amarillo':'verde');
@@ -1066,6 +1167,42 @@ function renderStock(){
       <div class="acciones"><button class="icon-btn" onclick="borrarStock('${s.id}')">🗑️</button></div>
     </div>`;
   }).join('');
+
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const cads = [...state.caducidades].map(c=>{
+    const fc = new Date(c.fecha+'T00:00:00');
+    const dias = Math.round((fc-hoy)/(1000*60*60*24));
+    return {...c, dias};
+  }).sort((a,b)=>a.dias-b.dias);
+  document.getElementById('emptyCaducidades').style.display = cads.length? 'none':'block';
+  document.getElementById('listaCaducidades').innerHTML = cads.map(c=>{
+    const sem = c.dias<3 ? 'rojo' : (c.dias<7 ? 'amarillo' : 'verde');
+    const texto = c.dias<0 ? 'Caducó hace '+Math.abs(c.dias)+' día(s)' : (c.dias===0? 'Caduca hoy' : 'Caduca en '+c.dias+' día(s)');
+    return `<div class="fila">
+      <div class="nombre"><span class="semaforo ${sem}"></span>${c.nombre}${c.nota? '<small>'+c.nota+'</small>':''}</div>
+      <div class="monto">${texto}</div>
+      <div class="acciones"><button class="icon-btn" onclick="borrarCaducidad('${c.id}')">🗑️</button></div>
+    </div>`;
+  }).join('');
+}
+
+function abrirFormCaducidad(){
+  document.getElementById('cdNombre').value='';
+  document.getElementById('cdFecha').value = new Date().toISOString().slice(0,10);
+  document.getElementById('cdNota').value='';
+  abrirOverlay('overlayCaducidad');
+}
+function guardarCaducidad(){
+  const nombre = document.getElementById('cdNombre').value.trim();
+  const fecha = document.getElementById('cdFecha').value;
+  const nota = document.getElementById('cdNota').value.trim();
+  if(!nombre || !fecha){ alert('Indica nombre y fecha de caducidad.'); return; }
+  state.caducidades.push({id:cid(), nombre, fecha, nota});
+  guardarEnNube(); cerrarOverlay('overlayCaducidad'); render();
+}
+function borrarCaducidad(id){
+  state.caducidades = state.caducidades.filter(x=>x.id!==id);
+  guardarEnNube(); render();
 }
 
 // ---- overlays ----
