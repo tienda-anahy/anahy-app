@@ -253,8 +253,13 @@
 
 <main>
 
+  <div id="cargandoAviso" style="text-align:center; padding:60px 20px; font-family:'Segoe UI',sans-serif; color:var(--tinta-suave);">
+    <div style="font-size:2rem; margin-bottom:10px;">🍍</div>
+    Cargando tus datos...
+  </div>
+
   <!-- INICIO / DASHBOARD -->
-  <section class="tab-panel active" id="tab-resumen">
+  <section class="tab-panel active" id="tab-resumen" style="display:none;">
     <div class="kpi-grid tres">
       <div class="kpi pos"><div class="label">Ventas hoy</div><div class="valor" id="kpiHoy">0€</div></div>
       <div class="kpi pos"><div class="label">Esta semana</div><div class="valor" id="kpiSemana">0€</div></div>
@@ -952,6 +957,11 @@ function totalIngresosRango(fechaInicioISO, fechaFinISO){
 
 function render(){
   if(!state) return;
+  const cargando = document.getElementById('cargandoAviso');
+  if(cargando){
+    cargando.style.display = 'none';
+    document.getElementById('tab-resumen').style.display = '';
+  }
   const [y,m] = selectedMonth.split('-').map(Number);
   document.getElementById('mesLabel').textContent = MESES[m-1] + ' ' + y;
 
@@ -1614,4 +1624,3 @@ function renovarCiclo(){
 </script>
 </body>
 </html>
-
