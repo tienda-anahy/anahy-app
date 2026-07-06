@@ -298,43 +298,55 @@
   <!-- GASTOS -->
   <section class="tab-panel" id="tab-gastos">
     <div class="card">
-      <h2>Gastos fijos <span class="badge">independiente cada mes</span></h2>
-      <div id="listaFijos"></div>
-      <button class="btn secundario" style="margin-top:10px;" onclick="abrirFormFijo()">+ Añadir gasto fijo</button>
-      <div class="total-linea"><span>Total fijos pagados este mes</span><span id="totalFijos">0€</span></div>
+      <h2 onclick="toggleSeccion('sec-fijos')" style="cursor:pointer; user-select:none;">Gastos fijos <span class="badge">independiente cada mes</span> <span class="chev" id="chev-sec-fijos" style="margin-left:auto; transition:transform 0.2s;">▾</span></h2>
+      <div id="sec-fijos" class="collapsible-content">
+        <div id="listaFijos"></div>
+        <button class="btn secundario" style="margin-top:10px;" onclick="abrirFormFijo()">+ Añadir gasto fijo</button>
+        <div class="total-linea"><span>Total fijos pagados este mes</span><span id="totalFijos">0€</span></div>
+      </div>
     </div>
     <div class="card">
-      <h2>Gastos imprevistos / variables</h2>
-      <div id="listaVariables"></div>
-      <div class="empty" id="emptyVariables" style="display:none;">Aún no hay gastos imprevistos este mes.</div>
-      <div class="total-linea"><span>Total imprevistos del mes</span><span id="totalVariables">0€</span></div>
-      <button class="btn" style="margin-top:14px;" onclick="abrirFormGasto()">+ Añadir gasto imprevisto</button>
+      <h2 onclick="toggleSeccion('sec-variables')" style="cursor:pointer; user-select:none;">Gastos <span class="chev" id="chev-sec-variables" style="margin-left:auto; transition:transform 0.2s;">▾</span></h2>
+      <div id="sec-variables" class="collapsible-content">
+        <div id="listaVariables"></div>
+        <div class="empty" id="emptyVariables" style="display:none;">Aún no hay gastos este mes.</div>
+        <div class="total-linea"><span>Total del mes</span><span id="totalVariables">0€</span></div>
+        <button class="btn" style="margin-top:14px;" onclick="abrirFormGasto()">+ Añadir gasto</button>
+      </div>
     </div>
     <div class="card">
-      <h2>Gastos por categoría <span class="badge">este mes</span></h2>
-      <div id="graficoCategorias"></div>
-      <div class="empty" id="emptyCategorias" style="display:none;">Sin gastos imprevistos este mes todavía.</div>
-    </div>
-    <div class="card">
-      <h2>Proveedores</h2>
-      <div id="listaProveedores"></div>
-      <button class="btn secundario" style="margin-top:10px;" onclick="abrirFormProveedor()">+ Añadir proveedor</button>
+      <h2 onclick="toggleSeccion('sec-categorias')" style="cursor:pointer; user-select:none;">Gastos por categoría <span class="badge">este mes</span> <span class="chev" id="chev-sec-categorias" style="margin-left:auto; transition:transform 0.2s;">▾</span></h2>
+      <div id="sec-categorias" class="collapsible-content">
+        <div id="graficoCategorias"></div>
+        <div class="empty" id="emptyCategorias" style="display:none;">Sin gastos este mes todavía.</div>
+      </div>
     </div>
   </section>
 
   <!-- INGRESOS -->
   <section class="tab-panel" id="tab-ingresos">
     <div class="card">
-      <h2>Ingresos del mes</h2>
-      <div id="listaIngresos"></div>
-      <div class="empty" id="emptyIngresos" style="display:none;">Aún no has apuntado ingresos este mes.</div>
-      <div class="total-linea"><span>Total ingresos</span><span id="totalIngresosTab">0€</span></div>
-      <button class="btn" style="margin-top:14px;" onclick="abrirFormIngreso()">+ Añadir ingreso del día</button>
+      <h2 onclick="toggleSeccion('sec-ingresos-mes')" style="cursor:pointer; user-select:none;">Ingresos del mes <span class="chev" id="chev-sec-ingresos-mes" style="margin-left:auto; transition:transform 0.2s;">▾</span></h2>
+      <div id="sec-ingresos-mes" class="collapsible-content">
+        <div id="listaIngresos"></div>
+        <div class="empty" id="emptyIngresos" style="display:none;">Aún no has apuntado ingresos este mes.</div>
+        <div class="total-linea"><span>Total ingresos</span><span id="totalIngresosTab">0€</span></div>
+        <button class="btn" style="margin-top:14px;" onclick="abrirFormIngreso()">+ Añadir ingreso del día</button>
+      </div>
     </div>
     <div class="card">
-      <h2>Resumen de un día</h2>
-      <input type="date" id="diaResumenFecha" onchange="renderResumenDia()" style="width:100%; padding:10px; border:1px solid var(--borde); border-radius:9px; font-family:'Segoe UI',sans-serif; background:var(--crema); color:var(--tinta); margin-bottom:10px;">
-      <div id="resumenDiaContenido"></div>
+      <h2 onclick="toggleSeccion('sec-resumen-dia')" style="cursor:pointer; user-select:none;">Resumen de un día <span class="chev" id="chev-sec-resumen-dia" style="margin-left:auto; transition:transform 0.2s;">▾</span></h2>
+      <div id="sec-resumen-dia" class="collapsible-content">
+        <input type="date" id="diaResumenFecha" onchange="renderResumenDia()" style="width:100%; padding:10px; border:1px solid var(--borde); border-radius:9px; font-family:'Segoe UI',sans-serif; background:var(--crema); color:var(--tinta); margin-bottom:10px;">
+        <div id="resumenDiaContenido"></div>
+        <div style="margin-top:12px;">
+          <label class="btn secundario" style="display:block; text-align:center; cursor:pointer;">
+            📷 Adjuntar foto del tique
+            <input type="file" accept="image/*" capture="environment" id="fotoTiqueInput" style="display:none;" onchange="subirFotoTique(this)">
+          </label>
+          <div id="fotoTiquePreview" style="margin-top:8px;"></div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -405,6 +417,30 @@
 </nav>
 
 <!-- FORM OVERLAYS -->
+<div class="form-overlay" id="overlayGraficos">
+  <div class="form-sheet">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="margin:0;">📊 Gráficos del mes</h3>
+      <button class="icon-btn" style="font-size:1.4rem;" onclick="cerrarOverlay('overlayGraficos')">✕</button>
+    </div>
+
+    <h3 style="font-size:0.9rem; margin-top:18px;">Ingresos vs gastos (últimos 6 meses)</h3>
+    <div class="barra-mes" id="graficoMesesAjustes"></div>
+    <div class="leyenda">
+      <span><span class="dot" style="background:var(--verde-claro)"></span>Ingresos</span>
+      <span><span class="dot" style="background:var(--papaya)"></span>Gastos</span>
+    </div>
+
+    <h3 style="font-size:0.9rem; margin-top:18px;">Gastos por categoría</h3>
+    <div id="graficoCategoriasAjustes"></div>
+
+    <h3 style="font-size:0.9rem; margin-top:18px;">Fijos vs variables</h3>
+    <div id="graficoFijoVariable"></div>
+
+    <button class="btn secundario" style="margin-top:18px;" onclick="cerrarOverlay('overlayGraficos')">Cerrar</button>
+  </div>
+</div>
+
 <div class="form-overlay" id="overlayAjustes">
   <div class="form-sheet">
     <h3>⚙️ Ajustes</h3>
@@ -419,6 +455,9 @@
     <label style="margin-top:10px;">Restaurar desde archivo</label>
     <input type="file" id="ajImportarFile" accept="application/json">
     <button class="btn secundario" style="margin-top:8px;" onclick="importarDatos()">⬇ Restaurar</button>
+
+    <h3 style="font-size:0.95rem; margin-top:20px;">Gráficos</h3>
+    <button class="btn secundario" onclick="abrirGraficos()">📊 Ver gráficos del mes</button>
 
     <button class="btn secundario" style="margin-top:18px;" onclick="cerrarOverlay('overlayAjustes')">Cerrar</button>
   </div>
@@ -437,7 +476,7 @@
 
 <div class="form-overlay" id="overlayGasto">
   <div class="form-sheet">
-    <h3>Nuevo gasto imprevisto</h3>
+    <h3>Añadir gasto</h3>
     <label>Fecha</label><input type="date" id="gFecha">
     <label>Concepto</label><input type="text" id="gConcepto" placeholder="Ej. reparación cámara frigorífica">
     <label>Importe (€)</label><input type="number" step="0.01" id="gMonto" placeholder="0.00">
@@ -456,9 +495,13 @@
       <option value="tarjeta">Tarjeta</option>
     </select>
     <label>Proveedor (opcional)</label>
-    <select id="gProveedor">
+    <select id="gProveedor" onchange="onCambioProveedorSelect(this)">
       <option value="">Sin especificar</option>
     </select>
+    <div id="gProveedorNuevoWrap" style="display:none; margin-top:6px;">
+      <input type="text" id="gProveedorNuevo" placeholder="Nombre del proveedor nuevo">
+      <button type="button" class="btn secundario" style="margin-top:6px;" onclick="guardarProveedorDesdeGasto()">Guardar proveedor</button>
+    </div>
     <div class="form-btns">
       <button class="btn secundario" onclick="cerrarOverlay('overlayGasto')">Cancelar</button>
       <button class="btn" onclick="guardarGasto()">Guardar</button>
@@ -552,11 +595,17 @@
 <div class="form-overlay" id="overlayRegistrarPago">
   <div class="form-sheet">
     <h3>Registrar pago de hoy</h3>
-    <p style="font-family:'Segoe UI',sans-serif;">Fecha: <strong id="rpFecha"></strong><br>Importe: <strong id="rpMonto"></strong></p>
-    <div class="aviso" id="rpAvisoDomingo" style="display:none;">Hoy es domingo, normalmente no se cobra. Puedes registrarlo igualmente si corresponde.</div>
+    <div id="rpDomingoBloque" style="display:none; text-align:center; padding:14px; background:rgba(232,121,45,0.12); border-radius:10px; margin-bottom:12px;">
+      <div style="font-family:'Segoe UI',sans-serif; font-weight:800; font-size:1.05rem; color:var(--papaya-oscuro);">HOY NO TOCA, ES DOMINGO</div>
+      <p style="font-size:0.78rem; color:var(--tinta-suave); margin-top:4px;">Normalmente no se cobra en domingo. Si aun así corresponde registrar algo, puedes hacerlo igual más abajo.</p>
+    </div>
+    <p style="font-family:'Segoe UI',sans-serif;">Fecha: <strong id="rpFecha"></strong></p>
+    <label>Importe pagado hoy (€)</label>
+    <input type="number" step="0.01" id="rpMontoInput" placeholder="0.00">
+    <p style="font-size:0.74rem; color:var(--tinta-suave); margin-top:4px;">Ajusta el importe si hoy no da para los 30€ completos, o si además de hoy se paga parte de un día anterior.</p>
     <label style="display:flex; align-items:center; gap:8px; margin-top:10px;">
       <input type="checkbox" id="rpSumarGasto" style="width:auto;">
-      Añadir también como gasto imprevisto de hoy
+      Añadir también como gasto de hoy
     </label>
     <p style="font-size:0.74rem; color:var(--tinta-suave); margin-top:6px;">Márcalo solo si este dinero sale de la caja de la tienda y quieres que se refleje como gasto del día. Si ya lo llevas aparte, déjalo sin marcar.</p>
     <div class="form-btns">
@@ -720,6 +769,7 @@ function defaultState(){
     caducidades: [],
     familiasCaducidad: ['Lácteos','Productos en bolsa','Bollería','Enlatados','Bebidas'],
     registrosFijosMensuales: {},
+    fotosResumenDia: {},
     proveedores: ['América','Elías','Dulce sol','Trigo verde','Komkal','Punto cash','Cosmo caix','Pedregosa','Ous aleña','Pacific group','Monbaque','Pepsico','Burriak','Carlos bolsa','Agua Ribes','Asían','Blaysa','Chino','Chocolate Sole','Copral','Daniel alimentación','Dispromon','Distribuidora latinoandina','DK distribución','Oscar honduras','Euro cash','Fageda','Grefusa','Froneri nestle Helados','Grupo América Fox','Grupo mundial','Helado latino','Hielo','Impex latino','Importadora mayzo','Mercabarna','Pan Bimbo','Transporte'],
     usuarios: {}
   };
@@ -733,6 +783,7 @@ function formatearFecha(iso){
 
 function cid(){ return 'id' + Math.random().toString(36).slice(2,10); }
 function euros(n){ return (Math.round((n||0)*100)/100).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2}) + '€'; }
+function plural(n, singular, pluralForm){ return Math.abs(n)===1 ? singular : pluralForm; }
 
 // ---------- arranque y login por identidad ----------
 let identidadElegida = null;
@@ -874,6 +925,7 @@ function iniciarApp(){
   document.getElementById('appRoot').style.display = 'block';
 
   aplicarTemaGuardado();
+  aplicarSeccionesColapsadas();
 
   docRef.onSnapshot((snap) => {
     if(snap.exists){
@@ -1029,14 +1081,16 @@ function renderResumen(){
   document.getElementById('kpiStockBajo').textContent = cadUrgentes.length;
   document.querySelector('#kpiStockBox .label').textContent = 'Caducando pronto';
 
-  // avisos
+  // avisos (solo cosas realmente accionables por vosotros)
   const avisos = [];
   if(ingresos===0) avisos.push({texto:'📝 Aún no has apuntado ingresos este mes.', tab:'ingresos'});
-  if(cadUrgentes.length>0) avisos.push({texto:'⏰ '+cadUrgentes.length+' producto(s) caducando pronto: '+cadUrgentes.map(c=>c.nombre).join(', '), tab:'stock'});
-  const fiadoAlto = state.fiados.filter(f=>f.monto>1000);
-  fiadoAlto.forEach(f=> avisos.push({texto:'🔴 '+f.cliente+' debe más de 1.000€ ('+euros(f.monto)+').', tab:'fiados'}));
+  cadUrgentes.forEach(c=>{
+    const fechas = c.fechas||[];
+    const diasMin = Math.min(...fechas.map(f => Math.round((new Date(f+'T00:00:00')-hoyCad0)/(1000*60*60*24))));
+    const texto = diasMin<0 ? '⏰ '+c.nombre+' — Caducó hace '+Math.abs(diasMin)+' '+plural(Math.abs(diasMin),'día','días') : (diasMin===0 ? '⏰ '+c.nombre+' — Caduca hoy' : '⏰ '+c.nombre+' — Caduca en '+diasMin+' '+plural(diasMin,'día','días'));
+    avisos.push({texto, tab:'stock'});
+  });
   const pendientesPago = state.gastosFijos.filter(g => !obtenerRegistroFijo(selectedMonth, g).pagado);
-  if(pendientesPago.length>0) avisos.push({texto:'💶 '+pendientesPago.length+' gasto(s) fijo(s) sin marcar como pagado este mes: '+pendientesPago.map(g=>g.nombre).join(', '), tab:'gastos'});
   const cardAvisos = document.getElementById('cardAvisos');
   if(avisos.length){
     cardAvisos.style.display='block';
@@ -1134,7 +1188,26 @@ function renderGastos(){
     </div>
   `).join('');
 
-  renderProveedoresLista();
+
+}
+
+function toggleSeccion(id){
+  const el = document.getElementById(id);
+  const chev = document.getElementById('chev-'+id);
+  const colapsado = el.style.display === 'none';
+  el.style.display = colapsado ? '' : 'none';
+  if(chev) chev.style.transform = colapsado ? 'rotate(0deg)' : 'rotate(-90deg)';
+  localStorage.setItem('anahy-colapsado-'+id, colapsado ? '0' : '1');
+}
+function aplicarSeccionesColapsadas(){
+  document.querySelectorAll('.collapsible-content').forEach(el=>{
+    const guardado = localStorage.getItem('anahy-colapsado-'+el.id);
+    if(guardado === '1'){
+      el.style.display = 'none';
+      const chev = document.getElementById('chev-'+el.id);
+      if(chev) chev.style.transform = 'rotate(-90deg)';
+    }
+  });
 }
 
 function renderProveedoresLista(){
@@ -1181,6 +1254,69 @@ function guardarNuevoFijo(){
   state.gastosFijos.push({id:cid(), nombre, monto, freq, diaVenc});
   guardarEnNube(); cerrarOverlay('overlayNuevoFijo'); render();
 }
+function abrirGraficos(){
+  // 1) ingresos vs gastos ultimos 6 meses (reutiliza misma logica que el dashboard)
+  const cont = document.getElementById('graficoMesesAjustes');
+  cont.innerHTML = '';
+  const base = new Date(selectedMonth+'-01');
+  let maxVal = 1;
+  const meses = [];
+  for(let i=5;i>=0;i--){
+    const d = new Date(base.getFullYear(), base.getMonth()-i, 1);
+    const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    const ing = state.ingresos.filter(x=>(x.fecha||'').slice(0,7)===key).reduce((s,x)=>s+Number(x.monto),0);
+    const gas = totalFijosMensual(key) + state.gastosVariables.filter(x=>(x.fecha||'').slice(0,7)===key).reduce((s,x)=>s+Number(x.monto),0);
+    meses.push({key, label: MESES[d.getMonth()].slice(0,3), ing, gas});
+    maxVal = Math.max(maxVal, ing, gas);
+  }
+  meses.forEach(mo=>{
+    const col = document.createElement('div');
+    col.className = 'col';
+    const hIng = Math.max(3, (mo.ing/maxVal)*88);
+    const hGas = Math.max(3, (mo.gas/maxVal)*88);
+    col.innerHTML = `<div class="barwrap">
+        <div class="bar ing" style="height:${hIng}px" title="Ingresos: ${euros(mo.ing)}"></div>
+        <div class="bar gas" style="height:${hGas}px" title="Gastos: ${euros(mo.gas)}"></div>
+      </div>
+      <div class="mlabel">${mo.label}</div>`;
+    cont.appendChild(col);
+  });
+
+  // 2) gastos por categoria del mes actual
+  const vars = filtrarPorMes(state.gastosVariables,'fecha');
+  const porCategoria = {};
+  vars.forEach(g => { porCategoria[g.categoria] = (porCategoria[g.categoria]||0) + Number(g.monto); });
+  const entradas = Object.entries(porCategoria).sort((a,b)=>b[1]-a[1]);
+  const maxCat = Math.max(1, ...entradas.map(e=>e[1]));
+  document.getElementById('graficoCategoriasAjustes').innerHTML = entradas.length ? entradas.map(([cat, val])=>`
+    <div style="margin-bottom:10px;">
+      <div style="display:flex; justify-content:space-between; font-family:'Segoe UI',sans-serif; font-size:0.82rem; margin-bottom:3px;">
+        <span>${cat}</span><span style="font-weight:700;">${euros(val)}</span>
+      </div>
+      <div style="background:var(--crema-osc); border-radius:6px; height:9px; overflow:hidden;">
+        <div style="background:var(--papaya); height:100%; width:${(val/maxCat)*100}%; border-radius:6px;"></div>
+      </div>
+    </div>
+  `).join('') : '<div class="empty">Sin gastos este mes.</div>';
+
+  // 3) fijos vs variables del mes
+  const totalFijos = totalFijosMensual();
+  const totalVars = totalVariablesMes();
+  const totalAmbos = Math.max(1, totalFijos+totalVars);
+  document.getElementById('graficoFijoVariable').innerHTML = `
+    <div style="display:flex; height:26px; border-radius:8px; overflow:hidden; margin-bottom:8px;">
+      <div style="background:var(--verde-claro); width:${(totalFijos/totalAmbos)*100}%;" title="Fijos: ${euros(totalFijos)}"></div>
+      <div style="background:var(--papaya); width:${(totalVars/totalAmbos)*100}%;" title="Variables: ${euros(totalVars)}"></div>
+    </div>
+    <div class="leyenda">
+      <span><span class="dot" style="background:var(--verde-claro)"></span>Fijos: ${euros(totalFijos)}</span>
+      <span><span class="dot" style="background:var(--papaya)"></span>Variables: ${euros(totalVars)}</span>
+    </div>
+  `;
+
+  abrirOverlay('overlayGraficos');
+}
+
 function abrirAjustes(){
   document.getElementById('ajIdentidadActual').textContent = usuarioActual() || 'Sin identificar';
   abrirOverlay('overlayAjustes');
@@ -1296,6 +1432,52 @@ function renderResumenDia(){
     ${fiadosCobrados.length ? `<div class="fila"><div class="nombre">Fiado cobrado (${fiadosCobrados.map(f=>f.cliente).join(', ')})</div><div class="monto verde">${euros(totalFiadoCobrado)}</div></div>` : ''}
     <div class="total-linea"><span>Neto del día</span><span>${euros(neto)}</span></div>
   `;
+
+  renderFotoTique(fecha);
+}
+
+function renderFotoTique(fecha){
+  const cont = document.getElementById('fotoTiquePreview');
+  const foto = state.fotosResumenDia && state.fotosResumenDia[fecha];
+  if(foto){
+    cont.innerHTML = `<div style="position:relative; display:inline-block;">
+      <img src="${foto}" style="max-width:100%; border-radius:10px; border:1px solid var(--borde);">
+      <button class="icon-btn" style="position:absolute; top:4px; right:4px; background:rgba(255,255,255,0.85); border-radius:50%;" onclick="borrarFotoTique('${fecha}')">🗑️</button>
+    </div>`;
+  } else {
+    cont.innerHTML = '';
+  }
+}
+function subirFotoTique(input){
+  const fecha = document.getElementById('diaResumenFecha').value;
+  if(!fecha || !input.files || !input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      const maxAncho = 900;
+      const escala = Math.min(1, maxAncho / img.width);
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width * escala;
+      canvas.height = img.height * escala;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+      if(!state.fotosResumenDia) state.fotosResumenDia = {};
+      state.fotosResumenDia[fecha] = dataUrl;
+      guardarEnNube();
+      renderFotoTique(fecha);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(input.files[0]);
+  input.value = '';
+}
+function borrarFotoTique(fecha){
+  if(!confirmarBorradoDoble('¿Eliminar la foto del tique de este día?')) return;
+  if(state.fotosResumenDia) delete state.fotosResumenDia[fecha];
+  guardarEnNube();
+  renderFotoTique(fecha);
 }
 
 function renderFiados(){
@@ -1352,14 +1534,14 @@ function renderStock(){
   document.getElementById('listaCaducidades').innerHTML = cads.map(c=>{
     const sem = c.diasMin<3 ? 'rojo' : (c.diasMin<7 ? 'amarillo' : 'verde');
     const color = c.diasMin<3 ? 'var(--rojo)' : (c.diasMin<7 ? 'var(--papaya-oscuro)' : 'var(--verde-claro)');
-    const textoGrande = c.diasMin<0 ? 'Caducó hace '+Math.abs(c.diasMin)+' día(s)' : (c.diasMin===0 ? 'Caduca hoy' : 'Caduca en '+c.diasMin+' día(s)');
+    const textoGrande = c.diasMin<0 ? 'Caducó hace '+Math.abs(c.diasMin)+' '+plural(c.diasMin,'día','días') : (c.diasMin===0 ? 'Caduca hoy' : 'Caduca en '+c.diasMin+' '+plural(c.diasMin,'día','días'));
     return `<div class="card" style="padding:14px; margin-bottom:10px;" onclick="abrirFormCaducidad('${c.id}')">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
         <div style="font-family:'Segoe UI',sans-serif; font-weight:600; font-size:0.92rem;">${c.nombre}</div>
         <button class="icon-btn" onclick="event.stopPropagation(); borrarCaducidad('${c.id}')">🗑️</button>
       </div>
       <div style="font-family:'Segoe UI',sans-serif; font-weight:700; font-size:0.95rem; color:${color}; margin-top:6px; display:flex; align-items:center; gap:6px;">
-        <span class="semaforo ${sem}"></span>${textoGrande}
+        <span class="semaforo ${sem}"></span>⏰ ${textoGrande}
       </div>
     </div>`;
   }).join('');
@@ -1441,7 +1623,7 @@ function verProductosFamilia(familia){
   document.getElementById('fpLista').innerHTML = items.map(c=>{
     const sem = c.diasMin<3 ? 'rojo' : (c.diasMin<7 ? 'amarillo' : 'verde');
     const color = c.diasMin<3 ? 'var(--rojo)' : (c.diasMin<7 ? 'var(--papaya-oscuro)' : 'var(--verde-claro)');
-    const textoGrande = c.diasMin<0 ? 'Caducó hace '+Math.abs(c.diasMin)+' día(s)' : (c.diasMin===0 ? 'Caduca hoy' : 'Caduca en '+c.diasMin+' día(s)');
+    const textoGrande = c.diasMin<0 ? 'Caducó hace '+Math.abs(c.diasMin)+' '+plural(c.diasMin,'día','días') : (c.diasMin===0 ? 'Caduca hoy' : 'Caduca en '+c.diasMin+' '+plural(c.diasMin,'día','días'));
     const fechasTexto = c.fechas.map(f=>formatearFecha(f)).join(' · ');
     return `<div class="card" style="padding:12px; margin-bottom:8px;">
       <div style="font-family:Georgia,serif; font-weight:700; font-size:1rem;">${c.nombre}</div>
@@ -1490,9 +1672,23 @@ function abrirFormGasto(){
   document.getElementById('gConcepto').value='';
   document.getElementById('gMonto').value='';
   document.getElementById('gMetodo').value='efectivo';
+  document.getElementById('gProveedorNuevoWrap').style.display='none';
   const sel = document.getElementById('gProveedor');
-  sel.innerHTML = '<option value="">Sin especificar</option>' + state.proveedores.map(p=>`<option value="${p}">${p}</option>`).join('');
+  sel.innerHTML = '<option value="">Sin especificar</option>' + state.proveedores.map(p=>`<option value="${p}">${p}</option>`).join('') + '<option value="__nuevo__">+ Añadir proveedor nuevo…</option>';
   abrirOverlay('overlayGasto');
+}
+function onCambioProveedorSelect(sel){
+  document.getElementById('gProveedorNuevoWrap').style.display = sel.value==='__nuevo__' ? 'block' : 'none';
+}
+function guardarProveedorDesdeGasto(){
+  const nombre = document.getElementById('gProveedorNuevo').value.trim();
+  if(!nombre){ alert('Escribe el nombre del proveedor.'); return; }
+  if(!state.proveedores.includes(nombre)) state.proveedores.push(nombre);
+  guardarEnNube();
+  const sel = document.getElementById('gProveedor');
+  sel.innerHTML = '<option value="">Sin especificar</option>' + state.proveedores.map(p=>`<option value="${p}">${p}</option>`).join('') + '<option value="__nuevo__">+ Añadir proveedor nuevo…</option>';
+  sel.value = nombre;
+  document.getElementById('gProveedorNuevoWrap').style.display='none';
 }
 function guardarGasto(){
   const fecha = document.getElementById('gFecha').value;
@@ -1500,7 +1696,8 @@ function guardarGasto(){
   const monto = Number(document.getElementById('gMonto').value);
   const categoria = document.getElementById('gCategoria').value;
   const metodo = document.getElementById('gMetodo').value;
-  const proveedor = document.getElementById('gProveedor').value;
+  let proveedor = document.getElementById('gProveedor').value;
+  if(proveedor==='__nuevo__') proveedor = '';
   if(!fecha || !concepto || !monto){ alert('Rellena fecha, concepto e importe.'); return; }
   state.gastosVariables.push({id:cid(), fecha, concepto, monto, categoria, metodo, proveedor, usuario: usuarioActual()});
   guardarEnNube(); cerrarOverlay('overlayGasto'); render();
@@ -1662,15 +1859,16 @@ function registrarPago(){
   if(p.saldo<=0){ alert('El préstamo ya está saldado. Puedes renovar el ciclo.'); return; }
   const hoy = new Date();
   document.getElementById('rpFecha').textContent = formatearFecha(hoy.toISOString().slice(0,10));
-  document.getElementById('rpMonto').textContent = euros(Math.min(p.cuotaDiaria, p.saldo));
-  document.getElementById('rpAvisoDomingo').style.display = hoy.getDay()===0 ? 'block' : 'none';
+  document.getElementById('rpMontoInput').value = Math.min(p.cuotaDiaria, p.saldo).toFixed(2);
+  document.getElementById('rpDomingoBloque').style.display = hoy.getDay()===0 ? 'block' : 'none';
   document.getElementById('rpSumarGasto').checked = false;
   abrirOverlay('overlayRegistrarPago');
 }
 function confirmarRegistrarPago(){
   const p = state.prestamoPersonal;
   const hoy = new Date();
-  const pago = Math.min(p.cuotaDiaria, p.saldo);
+  const pago = Number(document.getElementById('rpMontoInput').value);
+  if(!pago || pago<=0){ alert('Indica un importe válido.'); return; }
   const sumarGasto = document.getElementById('rpSumarGasto').checked;
   p.saldo = Math.max(0, p.saldo - pago);
   p.pagos.push({fecha: hoy.toISOString().slice(0,10), monto: pago});
