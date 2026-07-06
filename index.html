@@ -1422,8 +1422,16 @@ function renderResumenDia(){
   const totalFiadoCobrado = fiadosCobrados.reduce((s,x)=>s+Number(x.monto),0);
   const neto = totalIng - totalGas;
 
+  const gastosEfectivo = gastosDia.filter(g=>g.metodo==='efectivo').reduce((s,x)=>s+Number(x.monto),0);
+  const gastosTarjeta = gastosDia.filter(g=>g.metodo==='tarjeta').reduce((s,x)=>s+Number(x.monto),0);
+  const efectivoGenerado = efectivo + gastosEfectivo;
+
   cont.innerHTML = `
-    <div class="fila"><div class="nombre">Efectivo</div><div class="monto verde">${euros(efectivo)}</div></div>
+    ${gastosEfectivo>0 ? `
+    <div class="fila"><div class="nombre">Efectivo generado <small>(antes de gastos en efectivo, para comparar con el tique)</small></div><div class="monto verde">${euros(efectivoGenerado)}</div></div>
+    <div class="fila"><div class="nombre">− Gastos en efectivo</div><div class="monto rojo">${euros(gastosEfectivo)}</div></div>
+    ` : ''}
+    <div class="fila"><div class="nombre">Efectivo${gastosEfectivo>0?' (ya con gastos restados)':''}</div><div class="monto verde">${euros(efectivo)}</div></div>
     <div class="fila"><div class="nombre">Tarjeta</div><div class="monto verde">${euros(tarjeta)}</div></div>
     ${bizum ? `<div class="fila"><div class="nombre">Bizum</div><div class="monto verde">${euros(bizum)}</div></div>` : ''}
     <div class="fila"><div class="nombre">Total ingresado</div><div class="monto verde">${euros(totalIng)}</div></div>
@@ -1896,4 +1904,3 @@ function renovarCiclo(){
 </script>
 </body>
 </html>
-
