@@ -383,20 +383,22 @@
   <!-- CADUCIDAD -->
   <section class="tab-panel" id="tab-stock">
     <div class="card">
-      <h2>Caducidades</h2>
-      <input type="text" id="buscarCaducidad" placeholder="🔎 Buscar producto..." oninput="renderStock()"
-        style="width:100%; padding:10px; border:1px solid var(--borde); border-radius:9px; font-family:'Segoe UI',sans-serif; font-size:0.9rem; background:var(--crema); color:var(--tinta); margin-bottom:8px;">
-      <select id="filtroCaducidad" onchange="renderStock()" style="width:100%; padding:10px; border:1px solid var(--borde); border-radius:9px; font-family:'Segoe UI',sans-serif; font-size:0.9rem; background:var(--crema); color:var(--tinta); margin-bottom:10px;">
-        <option value="proximos">Más próximos a caducar primero</option>
-        <option value="lejanos">Más lejanos primero</option>
-        <option value="az">Alfabético (A-Z)</option>
-        <option value="urgente">Solo urgentes (3 días o menos)</option>
-        <option value="semana">Caducan esta semana (7 días o menos)</option>
-        <option value="caducados">Ya caducados</option>
-      </select>
-      <div id="listaCaducidades"></div>
-      <div class="empty" id="emptyCaducidades" style="display:none;">Aún no hay productos con caducidad apuntados.</div>
-      <button class="btn" style="margin-top:14px;" onclick="abrirFormCaducidad()">+ Añadir producto</button>
+      <h2 onclick="toggleSeccion('sec-caducidad')" style="cursor:pointer; user-select:none;">Caducidades <span class="chev" id="chev-sec-caducidad" style="margin-left:auto; transition:transform 0.2s;">▾</span></h2>
+      <button class="btn" style="margin-bottom:12px;" onclick="abrirFormCaducidad()">+ Añadir producto</button>
+      <div id="sec-caducidad" class="collapsible-content">
+        <input type="text" id="buscarCaducidad" placeholder="🔎 Buscar producto..." oninput="renderStock()"
+          style="width:100%; padding:10px; border:1px solid var(--borde); border-radius:9px; font-family:'Segoe UI',sans-serif; font-size:0.9rem; background:var(--crema); color:var(--tinta); margin-bottom:8px;">
+        <select id="filtroCaducidad" onchange="renderStock()" style="width:100%; padding:10px; border:1px solid var(--borde); border-radius:9px; font-family:'Segoe UI',sans-serif; font-size:0.9rem; background:var(--crema); color:var(--tinta); margin-bottom:10px;">
+          <option value="proximos">Más próximos a caducar primero</option>
+          <option value="lejanos">Más lejanos primero</option>
+          <option value="az">Alfabético (A-Z)</option>
+          <option value="urgente">Solo urgentes (3 días o menos)</option>
+          <option value="semana">Caducan esta semana (7 días o menos)</option>
+          <option value="caducados">Ya caducados</option>
+        </select>
+        <div id="listaCaducidades"></div>
+        <div class="empty" id="emptyCaducidades" style="display:none;">Aún no hay productos con caducidad apuntados.</div>
+      </div>
     </div>
     <div class="card">
       <h2>Familias de producto</h2>
