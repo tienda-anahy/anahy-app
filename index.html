@@ -517,6 +517,12 @@
       <option value="efectivo">Efectivo</option>
       <option value="tarjeta">Tarjeta</option>
     </select>
+    <label>¿De dónde sale este dinero?</label>
+    <select id="gOrigen">
+      <option value="caja">Caja del día</option>
+      <option value="acumulado">Dinero acumulado (no es de hoy)</option>
+    </select>
+    <p style="font-size:0.74rem; color:var(--tinta-suave); margin-top:4px;">Si es dinero acumulado de otros días (para stock, facturas, etc.), no afectará al resumen de caja de hoy, pero sí se contará en los totales del mes.</p>
     <label>Proveedor (opcional)</label>
     <select id="gProveedor" onchange="onCambioProveedorSelect(this)">
       <option value="">Sin especificar</option>
@@ -578,7 +584,11 @@
   <div class="form-sheet">
     <h3 id="dfNombre">Cliente</h3>
     <div class="kpi-grid" style="margin-bottom:12px;">
-      <div class="kpi neg"><div class="label">Debe ahora</div><div class="valor" id="dfMonto">0€</div></div>
+      <div class="kpi neg" style="position:relative;">
+        <div class="label">Debe ahora</div>
+        <div class="valor" id="dfMonto">0€</div>
+        <button class="icon-btn" style="position:absolute; top:8px; right:8px; font-size:1rem;" onclick="abrirAjusteMontoFiado()" title="Ajustar monto exacto">✏️</button>
+      </div>
       <div class="kpi info"><div class="label">Total pagado histórico</div><div class="valor" id="dfPagadoTotal">0€</div></div>
     </div>
     <p style="font-size:0.85rem; color:var(--tinta-suave);" id="dfContacto"></p>
@@ -589,7 +599,6 @@
       <button class="btn secundario" onclick="abrirAumentoDeuda()">+ Nueva compra fiada</button>
       <button class="btn" onclick="abrirPagoFiadoDesdeDetalle()">💶 Registrar pago</button>
     </div>
-    <button class="btn secundario" style="margin-top:8px;" onclick="abrirAjusteMontoFiado()">✏️ Ajustar monto exacto</button>
     <button class="btn secundario" style="margin-top:8px;" onclick="cerrarOverlay('overlayDetalleFiado')">Cerrar</button>
   </div>
 </div>
@@ -650,6 +659,13 @@
       <button class="btn" onclick="confirmarRegistrarPago()">Confirmar</button>
     </div>
   </div>
+</div>
+
+<div class="form-overlay" id="overlayFotoZoom" style="background:rgba(0,0,0,0.92); padding:0;" onclick="if(event.target===this) cerrarOverlay('overlayFotoZoom')">
+  <div style="width:100%; height:100%; overflow:auto; touch-action:pinch-zoom; display:flex; align-items:flex-start; justify-content:center;">
+    <img id="imgZoomFoto" style="max-width:100%; touch-action:pinch-zoom;">
+  </div>
+  <button class="icon-btn" style="position:fixed; top:16px; right:16px; font-size:1.6rem; background:rgba(255,255,255,0.9); border-radius:50%; width:40px; height:40px;" onclick="cerrarOverlay('overlayFotoZoom')">✕</button>
 </div>
 
 <div class="form-overlay" id="overlayChecklist">
@@ -717,6 +733,10 @@
     <div id="cdFechasLista"></div>
     <button class="btn secundario" style="margin-top:6px;" onclick="agregarCampoFecha()">+ Añadir otra fecha</button>
     <label style="margin-top:10px;">Nota (opcional)</label><input type="text" id="cdNota" placeholder="Ej. lote de la nevera 2">
+    <label style="display:flex; align-items:center; gap:8px; margin-top:12px;">
+      <input type="checkbox" id="cdDevolucion" style="width:auto;">
+      Se puede devolver (si caduca, no se pierde)
+    </label>
     <div class="form-btns">
       <button class="btn secundario" onclick="cerrarOverlay('overlayCaducidad')">Cancelar</button>
       <button class="btn" onclick="guardarCaducidad()">Guardar</button>
@@ -1158,6 +1178,7 @@ function renderResumen(){
 
   const hoyCad0 = new Date(); hoyCad0.setHours(0,0,0,0);
   const cadUrgentes = (state.caducidades||[]).filter(c => (c.fechas||[]).some(f => Math.round((new Date(f+'T00:00:00')-hoyCad0)/(1000*60*60*24)) <= 3));
+  const cadUrgentesSinDevolucion = cadUrgentes.filter(c => !c.devolucion);
   const stockBox = document.getElementById('kpiStockBox');
   stockBox.className = 'kpi ' + (cadUrgentes.length>0 ? 'neg':'pos');
   document.getElementById('kpiStockBajo').textContent = cadUrgentes.length;
@@ -1166,10 +1187,10 @@ function renderResumen(){
   // avisos (solo cosas realmente accionables por vosotros)
   const avisos = [];
   if(ingresos===0) avisos.push({texto:'📝 Aún no has apuntado ingresos este mes.', tab:'ingresos'});
-  cadUrgentes.forEach(c=>{
+  cadUrgentesSinDevolucion.forEach(c=>{
     const fechas = c.fechas||[];
     const diasMin = Math.min(...fechas.map(f => Math.round((new Date(f+'T00:00:00')-hoyCad0)/(1000*60*60*24))));
-    const texto = diasMin<0 ? '⏰ '+c.nombre+' — Caducó hace '+Math.abs(diasMin)+' '+plural(Math.abs(diasMin),'día','días') : (diasMin===0 ? '⏰ '+c.nombre+' — Caduca hoy' : '⏰ '+c.nombre+' — Caduca en '+diasMin+' '+plural(diasMin,'día','días'));
+    const texto = diasMin<0 ? '☠️ '+c.nombre+' (no se puede devolver) — Caducó hace '+Math.abs(diasMin)+' '+plural(Math.abs(diasMin),'día','días') : (diasMin===0 ? '☠️ '+c.nombre+' (no se puede devolver) — Caduca hoy' : '☠️ '+c.nombre+' (no se puede devolver) — Caduca en '+diasMin+' '+plural(diasMin,'día','días'));
     avisos.push({texto, tab:'stock'});
   });
   const pendientesPago = state.gastosFijos.filter(g => !obtenerRegistroFijo(selectedMonth, g).pagado);
@@ -1258,7 +1279,7 @@ function renderGastos(){
       ${items.map(g=>{
         const esVinculado = !!g.vinculado;
         return `<div class="fila">
-          <div class="nombre" ${esVinculado?'':`onclick="abrirFormGasto('${g.id}')" style="cursor:pointer;"`}>${g.concepto}<small>${g.categoria}${g.metodo? ' · '+(g.metodo==='efectivo'?'Efectivo':'Tarjeta'):''}${g.proveedor? ' · '+g.proveedor:''}${g.usuario? ' · '+g.usuario:''}</small></div>
+          <div class="nombre" ${esVinculado?'':`onclick="abrirFormGasto('${g.id}')" style="cursor:pointer;"`}>${g.concepto}<small>${g.categoria}${g.metodo? ' · '+(g.metodo==='efectivo'?'Efectivo':'Tarjeta'):''}${g.proveedor? ' · '+g.proveedor:''}${g.usuario? ' · '+g.usuario:''}${g.origen==='acumulado'? ' · 💰 dinero acumulado':''}</small></div>
           <div class="monto rojo">${euros(g.monto)}</div>
           <div class="acciones">${esVinculado ? '<span title="Se gestiona desde la pestaña Préstamo" style="cursor:pointer;" onclick="cambiarTab(\'prestamo\')">🔒</span>' : `<button class="icon-btn" onclick="borrarVariable('${g.id}')">🗑️</button>`}</div>
         </div>`;
@@ -1584,10 +1605,12 @@ function renderResumenDia(){
   if(!fecha){ cont.innerHTML = ''; return; }
   const ingresosDia = state.ingresos.filter(x=>x.fecha===fecha);
   const gastosDia = state.gastosVariables.filter(x=>x.fecha===fecha);
+  const gastosCajaDia = gastosDia.filter(g=>g.origen!=='acumulado');
+  const gastosAcumuladoDia = gastosDia.filter(g=>g.origen==='acumulado');
   const efectivo = ingresosDia.reduce((s,x)=>s+Number(x.desglose?.efectivo||0),0);
   const tarjeta = ingresosDia.reduce((s,x)=>s+Number(x.desglose?.tarjeta||0),0);
-  const totalGas = gastosDia.reduce((s,x)=>s+Number(x.monto),0);
-  const gastosEfectivo = gastosDia.filter(g=>g.metodo==='efectivo').reduce((s,x)=>s+Number(x.monto),0);
+  const totalGas = gastosCajaDia.reduce((s,x)=>s+Number(x.monto),0);
+  const gastosEfectivo = gastosCajaDia.filter(g=>g.metodo==='efectivo').reduce((s,x)=>s+Number(x.monto),0);
 
   const fiadosDia = [];
   state.fiados.forEach(f=>{
@@ -1602,11 +1625,13 @@ function renderResumenDia(){
   const idFiadosDia = 'rd-fiados';
   const idGastosDia = 'rd-gastos';
 
+  const netoFiadoDia = fiadosDia.filter(m=>m.tipo==='deuda').reduce((s,m)=>s+Number(m.monto),0) - fiadosDia.filter(m=>m.tipo==='pago').reduce((s,m)=>s+Number(m.monto),0);
+
   cont.innerHTML = `
     <div class="fila" style="flex-direction:column; align-items:stretch;">
       <div onclick="toggleDiaFiado('${idFiadosDia}')" style="cursor:pointer; display:flex; justify-content:space-between; width:100%;">
         <div class="nombre">Fiados <span class="chev" style="display:inline-block;">▾</span></div>
-        <div class="monto">${fiadosDia.length ? fiadosDia.length + ' ' + plural(fiadosDia.length,'movimiento','movimientos') : 'Ninguno'}</div>
+        <div class="monto ${netoFiadoDia>0?'rojo':(netoFiadoDia<0?'verde':'')}">${netoFiadoDia===0 && !fiadosDia.length ? 'Ninguno' : euros(netoFiadoDia)}</div>
       </div>
       <div id="${idFiadosDia}" style="display:none; margin-top:8px;">
         ${fiadosDia.length ? fiadosDia.map(m=>`<div class="fila"><div class="nombre">${m.cliente}${m.nota? '<small>'+m.nota+'</small>':''}</div><div class="monto ${m.tipo==='deuda'?'rojo':'verde'}">${m.tipo==='deuda'?'+':'-'}${euros(m.monto)}</div></div>`).join('') : '<div class="empty">Sin movimientos de fiado este día.</div>'}
@@ -1619,9 +1644,21 @@ function renderResumenDia(){
         <div class="monto rojo">${euros(totalGas)}</div>
       </div>
       <div id="${idGastosDia}" style="display:none; margin-top:8px;">
-        ${gastosDia.length ? gastosDia.map(g=>`<div class="fila"><div class="nombre">${g.concepto}<small>${g.metodo==='efectivo'?'Efectivo':'Tarjeta'}${g.proveedor? ' · '+g.proveedor:''}</small></div><div class="monto rojo">${euros(g.monto)}</div></div>`).join('') : '<div class="empty">Sin gastos este día.</div>'}
+        ${gastosCajaDia.length ? gastosCajaDia.map(g=>`<div class="fila"><div class="nombre">${g.concepto}<small>${g.metodo==='efectivo'?'Efectivo':'Tarjeta'}${g.proveedor? ' · '+g.proveedor:''}</small></div><div class="monto rojo">${euros(g.monto)}</div></div>`).join('') : '<div class="empty">Sin gastos de caja este día.</div>'}
       </div>
     </div>
+
+    ${gastosAcumuladoDia.length ? `
+    <div class="fila" style="flex-direction:column; align-items:stretch;">
+      <div onclick="toggleDiaFiado('rd-acumulado')" style="cursor:pointer; display:flex; justify-content:space-between; width:100%;">
+        <div class="nombre">💰 Pagado con dinero acumulado <small>(no afecta al neto de hoy)</small></div>
+        <div class="monto">${euros(gastosAcumuladoDia.reduce((s,g)=>s+Number(g.monto),0))}</div>
+      </div>
+      <div id="rd-acumulado" style="display:none; margin-top:8px;">
+        ${gastosAcumuladoDia.map(g=>`<div class="fila"><div class="nombre">${g.concepto}<small>${g.metodo==='efectivo'?'Efectivo':'Tarjeta'}${g.proveedor? ' · '+g.proveedor:''}</small></div><div class="monto">${euros(g.monto)}</div></div>`).join('')}
+      </div>
+    </div>
+    ` : ''}
 
     <div class="fila"><div class="nombre">Efectivo máquina</div><div class="monto verde">${euros(efectivo)}</div></div>
     <div class="fila"><div class="nombre">Efectivo total generado <small>(para comparar con el tiquet)</small></div><div class="monto verde">${euros(efectivoTotalGenerado)}</div></div>
@@ -1637,12 +1674,18 @@ function renderFotoTique(fecha){
   const foto = state.fotosResumenDia && state.fotosResumenDia[fecha];
   if(foto){
     cont.innerHTML = `<div style="position:relative; display:inline-block;">
-      <img src="${foto}" style="max-width:100%; border-radius:10px; border:1px solid var(--borde);">
+      <img src="${foto}" style="max-width:100%; border-radius:10px; border:1px solid var(--borde); cursor:pointer;" onclick="abrirFotoZoom('${fecha}')">
       <button class="icon-btn" style="position:absolute; top:4px; right:4px; background:rgba(255,255,255,0.85); border-radius:50%;" onclick="borrarFotoTique('${fecha}')">🗑️</button>
     </div>`;
   } else {
     cont.innerHTML = '';
   }
+}
+function abrirFotoZoom(fecha){
+  const foto = state.fotosResumenDia && state.fotosResumenDia[fecha];
+  if(!foto) return;
+  document.getElementById('imgZoomFoto').src = foto;
+  abrirOverlay('overlayFotoZoom');
 }
 function subirFotoTique(input){
   const fecha = document.getElementById('diaResumenFecha').value;
@@ -1814,9 +1857,12 @@ function renderStock(){
     const sem = c.diasMin<3 ? 'rojo' : (c.diasMin<7 ? 'amarillo' : 'verde');
     const color = c.diasMin<3 ? 'var(--rojo)' : (c.diasMin<7 ? 'var(--papaya-oscuro)' : 'var(--verde-claro)');
     const textoGrande = c.diasMin<0 ? 'Caducó hace '+Math.abs(c.diasMin)+' '+plural(c.diasMin,'día','días') : (c.diasMin===0 ? 'Caduca hoy' : 'Caduca en '+c.diasMin+' '+plural(c.diasMin,'día','días'));
-    return `<div class="card" style="padding:14px; margin-bottom:10px;" onclick="abrirFormCaducidad('${c.id}')">
+    const icono = c.devolucion ? '✅' : '☠️';
+    const esUrgenteYSinDevolucion = c.diasMin<3 && !c.devolucion;
+    const estiloTarjeta = esUrgenteYSinDevolucion ? 'padding:14px; margin-bottom:10px; background:rgba(193,68,59,0.16); border:1px solid var(--rojo);' : 'padding:14px; margin-bottom:10px;';
+    return `<div class="card" style="${estiloTarjeta}" onclick="abrirFormCaducidad('${c.id}')">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
-        <div style="font-family:'Segoe UI',sans-serif; font-weight:600; font-size:0.92rem;">${c.nombre}</div>
+        <div style="font-family:'Segoe UI',sans-serif; font-weight:600; font-size:0.92rem;">${icono} ${c.nombre}</div>
         <button class="icon-btn" onclick="event.stopPropagation(); borrarCaducidad('${c.id}')">🗑️</button>
       </div>
       <div style="font-family:'Segoe UI',sans-serif; font-weight:700; font-size:0.95rem; color:${color}; margin-top:6px; display:flex; align-items:center; gap:6px;">
@@ -1849,6 +1895,7 @@ function abrirFormCaducidad(id){
     selFamilia.value = c.familia || '';
     document.getElementById('cdUbicacion').value = c.ubicacion || '';
     document.getElementById('cdNota').value = c.nota || '';
+    document.getElementById('cdDevolucion').checked = !!c.devolucion;
     const fechas = c.fechas && c.fechas.length ? c.fechas : (c.fecha ? [c.fecha] : ['']);
     fechas.forEach(f=>agregarCampoFecha(f));
   } else {
@@ -1857,6 +1904,7 @@ function abrirFormCaducidad(id){
     selFamilia.value = '';
     document.getElementById('cdUbicacion').value='';
     document.getElementById('cdNota').value='';
+    document.getElementById('cdDevolucion').checked = false;
     agregarCampoFecha(new Date().toISOString().slice(0,10));
   }
   abrirOverlay('overlayCaducidad');
@@ -1866,13 +1914,14 @@ function guardarCaducidad(){
   const familia = document.getElementById('cdFamilia').value;
   const ubicacion = document.getElementById('cdUbicacion').value.trim();
   const nota = document.getElementById('cdNota').value.trim();
+  const devolucion = document.getElementById('cdDevolucion').checked;
   const fechas = Array.from(document.querySelectorAll('.cd-fecha-input')).map(i=>i.value).filter(Boolean);
   if(!nombre || !fechas.length){ alert('Indica nombre y al menos una fecha de caducidad.'); return; }
   if(caducidadEditandoId){
     const c = state.caducidades.find(x=>x.id===caducidadEditandoId);
-    if(c){ c.nombre=nombre; c.familia=familia; c.ubicacion=ubicacion; c.nota=nota; c.fechas=fechas; delete c.fecha; }
+    if(c){ c.nombre=nombre; c.familia=familia; c.ubicacion=ubicacion; c.nota=nota; c.fechas=fechas; c.devolucion=devolucion; delete c.fecha; }
   } else {
-    state.caducidades.push({id:cid(), nombre, familia, ubicacion, nota, fechas});
+    state.caducidades.push({id:cid(), nombre, familia, ubicacion, nota, fechas, devolucion});
   }
   guardarEnNube(); cerrarOverlay('overlayCaducidad'); caducidadEditandoId=null; render();
 }
@@ -1963,12 +2012,14 @@ function abrirFormGasto(id){
     document.getElementById('gMonto').value = g.monto;
     document.getElementById('gCategoria').value = g.categoria;
     document.getElementById('gMetodo').value = g.metodo || 'efectivo';
+    document.getElementById('gOrigen').value = g.origen || 'caja';
     sel.value = g.proveedor || '';
   } else {
     document.getElementById('gFecha').value = new Date().toISOString().slice(0,10);
     document.getElementById('gConcepto').value='';
     document.getElementById('gMonto').value='';
     document.getElementById('gMetodo').value='efectivo';
+    document.getElementById('gOrigen').value='caja';
   }
   abrirOverlay('overlayGasto');
 }
@@ -1991,14 +2042,15 @@ function guardarGasto(){
   const monto = Number(document.getElementById('gMonto').value);
   const categoria = document.getElementById('gCategoria').value;
   const metodo = document.getElementById('gMetodo').value;
+  const origen = document.getElementById('gOrigen').value;
   let proveedor = document.getElementById('gProveedor').value;
   if(proveedor==='__nuevo__') proveedor = '';
   if(!fecha || !concepto || !monto){ alert('Rellena fecha, concepto e importe.'); return; }
   if(gastoEditandoId){
     const g = state.gastosVariables.find(x=>x.id===gastoEditandoId);
-    if(g){ g.fecha=fecha; g.concepto=concepto; g.monto=monto; g.categoria=categoria; g.metodo=metodo; g.proveedor=proveedor; }
+    if(g){ g.fecha=fecha; g.concepto=concepto; g.monto=monto; g.categoria=categoria; g.metodo=metodo; g.proveedor=proveedor; g.origen=origen; }
   } else {
-    state.gastosVariables.push({id:cid(), fecha, concepto, monto, categoria, metodo, proveedor, usuario: usuarioActual()});
+    state.gastosVariables.push({id:cid(), fecha, concepto, monto, categoria, metodo, proveedor, origen, usuario: usuarioActual()});
   }
   guardarEnNube(); cerrarOverlay('overlayGasto'); gastoEditandoId=null; render();
 }
